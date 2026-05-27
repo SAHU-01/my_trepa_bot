@@ -1,0 +1,33 @@
+name: Whale Radar Sync
+
+on:
+  schedule:
+    # Run every 10 minutes during the live hour (13:00 UTC)
+    - cron: '*/10 13 * * *'
+    # Run once a day for general history refresh
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Force Cache Refresh
+        env:
+          TREPA_API_KEY: ${{ secrets.TREPA_API_KEY }}
+          TREPA_PRIVATE_KEY: ${{ secrets.TREPA_PRIVATE_KEY }}
+        run: npx tsx force_cache.ts
+        
+      # Note: On Vercel/GitHub Actions, files are ephemeral. 
+      # This Action confirms the data is fetchable. 
+      # In production, Vercel Cron will trigger the API route directly.

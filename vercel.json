@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/pools/hall-of-fame",
+      "schedule": "*/10 13 * * *"
+    }
+  ]
+}
