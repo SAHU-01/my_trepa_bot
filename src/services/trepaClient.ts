@@ -221,7 +221,12 @@ export async function getHallOfFame() {
     const now = new Date();
     const isLiveHour = now.getUTCHours() === 13; // 13:00 - 14:00 UTC
     
-    runBackgroundRefresh(); // Initial refresh
+    // On Vercel, the first request should wait for data
+    if (cachedWhales.length === 0) {
+      await runBackgroundRefresh();
+    } else {
+      runBackgroundRefresh();
+    }
     
     // Senior logic: Update every 5 mins during live session, every 12 hours otherwise
     const interval = isLiveHour ? 1000 * 60 * 5 : 1000 * 60 * 60 * 12;

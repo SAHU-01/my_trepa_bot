@@ -1,0 +1,33 @@
+name: Mirror Bot & Whale Radar
+
+on:
+  schedule:
+    # Run every minute during the live hour (13:00 - 14:00 UTC)
+    - cron: '* 13 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Run Mirror Bot
+        env:
+          TREPA_API_KEY: ${{ secrets.TREPA_API_KEY }}
+          TREPA_PRIVATE_KEY: ${{ secrets.TREPA_PRIVATE_KEY }}
+          # The bot will report logs to your Vercel URL
+          NEXT_PUBLIC_SITE_URL: https://your-vercel-domain.vercel.app 
+        run: |
+          # Run the bot for the duration of the round
+          npx tsx bot.ts
