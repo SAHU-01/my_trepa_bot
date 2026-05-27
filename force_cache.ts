@@ -15,10 +15,10 @@ if (fs.existsSync(envPath)) {
 }
 
 const trepa = new Trepa({ 
-  credentials: {
+  credentials: [{
     apiKey: process.env.TREPA_API_KEY || '',
     privateKey: process.env.TREPA_PRIVATE_KEY || ''
-  }
+  }]
 });
 
 const CACHE_FILE = './whales_cache.json';
@@ -47,7 +47,7 @@ async function forcePopulateCache() {
     }>();
     
     const allPredictions = await Promise.all(
-      pools.map(pool => trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] }))
+      pools.map((pool: any) => trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] }))
     );
     
     allPredictions.forEach((predictions: any) => {

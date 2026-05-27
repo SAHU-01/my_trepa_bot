@@ -141,7 +141,7 @@ async function runBackgroundRefresh() {
     }>();
     
     const allPredictions = await Promise.all(
-      pools.map(pool => trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] }))
+      pools.map((pool: any) => trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] }))
     );
     
     allPredictions.forEach((predictions: any) => {
