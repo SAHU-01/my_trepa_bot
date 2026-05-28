@@ -2,7 +2,7 @@
 
 A high-performance prediction dashboard and automated mirror bot built on the **Trepa SDK**. This project simulates professional trading "Intelligence" by mirroring the top-performing experts on the Trepa network.
 
-![Trepa Arena Dashboard](https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/images/clipboard-1779937273604.png)
+![Trepa Arena Dashboard](https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/images/clipboard-1779942741402.png)
 
 ## 🚀 Key Features
 
@@ -59,14 +59,20 @@ HUGGINGFACE_API_KEY=your_optional_hf_key
 ```
 
 ### 4. Running Locally
+For a full simulation, open **two separate terminal windows**:
+
+**Terminal 1: The Dashboard**
 ```bash
-# Start the Dashboard
 npm run dev
+```
 
-# Run the Mirror Bot manually
+**Terminal 2: The Mirror Bot**
+```bash
 npx tsx bot.ts
+```
 
-# Force a Whale Radar refresh
+**Optional: Manual Whale Refresh**
+```bash
 npx tsx force_cache.ts
 ```
 
