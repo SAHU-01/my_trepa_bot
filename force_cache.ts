@@ -54,7 +54,7 @@ async function forcePopulateCache() {
     for (let i = 0; i < pools.length; i += 10) {
       const batch = pools.slice(i, i + 10);
       const batchPredictions = await Promise.all(
-        batch.map(pool => trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] }).then(preds => ({ poolId: pool.id, predictions: preds })))
+        batch.map((pool: any) => trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] }).then(preds => ({ poolId: pool.id, predictions: preds })))
       );
       
       batchPredictions.forEach(({ poolId, predictions }: any) => {
