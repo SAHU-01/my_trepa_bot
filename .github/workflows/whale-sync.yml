@@ -28,6 +28,10 @@ jobs:
           TREPA_PRIVATE_KEY: ${{ secrets.TREPA_PRIVATE_KEY }}
         run: npx tsx force_cache.ts
         
-      # Note: On Vercel/GitHub Actions, files are ephemeral. 
-      # This Action confirms the data is fetchable. 
-      # In production, Vercel Cron will trigger the API route directly.
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add whales_cache.json
+          git commit -m "chore: update whale radar cache [skip ci]" || echo "No changes to commit"
+          git push

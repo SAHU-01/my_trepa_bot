@@ -210,24 +210,41 @@ async function runBackgroundRefresh() {
 
 /**
  * Fetches the Hall of Fame - prioritizing "Whales" (High Stake + High Success).
- * Returns INSTANTLY from memory or disk. 
+ * Now fetches from the GitHub Raw URL to ensure persistence across Vercel restarts.
  */
 export async function getHallOfFame() {
+  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/whales_cache.json';
+
+  // If we already have data in memory and it's fresh enough, use it
+  if (cachedWhales.length > 0 && refreshIntervalStarted) {
+    return cachedWhales;
+  }
+
+  try {
+    // 1. Try to fetch the latest "database" file from GitHub
+    const res = await fetch(GITHUB_RAW_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        cachedWhales = data;
+        console.log('✅ Whale Radar updated from GitHub Master');
+      }
+    }
+  } catch (err) {
+    console.error('⚠️ Failed to fetch whales from GitHub, falling back to background refresh');
+  }
+
+  // 2. Start the background refresh interval if not already running
   if (!refreshIntervalStarted) {
     refreshIntervalStarted = true;
-    
-    // Refresh frequency logic
     const now = new Date();
-    const isLiveHour = now.getUTCHours() === 13; // 13:00 - 14:00 UTC
+    const isLiveHour = now.getUTCHours() === 13;
     
-    // On Vercel, the first request should wait for data
+    // Only perform the heavy refresh if the GitHub fetch failed or returned empty
     if (cachedWhales.length === 0) {
       await runBackgroundRefresh();
-    } else {
-      runBackgroundRefresh();
     }
     
-    // Senior logic: Update every 5 mins during live session, every 12 hours otherwise
     const interval = isLiveHour ? 1000 * 60 * 5 : 1000 * 60 * 60 * 12;
     setInterval(runBackgroundRefresh, interval);
   }
