@@ -135,71 +135,91 @@ async function runBackgroundRefresh() {
 
     const expertStats = new Map<string, { 
       username: string; 
+      uid: string;
       wins: number; 
       totalStaked: number;
       accuracies: number[];
     }>();
     
-    // Fetch predictions one by one or in small chunks to avoid overloading Trepa 500s
+    // Process pools to find relative winners
     for (const pool of pools) {
       try {
-        const predictions: any = await trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] });
-        if (!Array.isArray(predictions)) continue;
+        const predictions: any = await trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] });
+        if (!Array.isArray(predictions) || predictions.length === 0) continue;
 
-        const maxPrecision = Math.max(...predictions.map(p => Number(p.precision) || 0));
+        // RELATIVE WIN LOGIC: A win is defined as being in the top 10% of that specific round
+        const resolved = predictions
+          .filter(p => (Number(p.precision) || 0) > 0)
+          .sort((a, b) => Number(b.precision) - Number(a.precision));
+        
+        const winThreshold = resolved[Math.floor(resolved.length * 0.1)]?.precision || resolved[0]?.precision || 100;
 
         predictions.forEach(p => {
           const username = p.user?.username || `anon-${p.predictor_account.slice(0, 4)}`;
+          const uid = p.user?.id || p.predictor_account;
           const stake = Number(p.stake) || 0;
           const precision = Number(p.precision) || 0;
           const existing = expertStats.get(username);
           
-          const isLocalWinner = (precision > 0 && precision >= maxPrecision);
+          const isWin = precision > 0 && precision >= winThreshold;
 
           if (existing) {
-            existing.wins += isLocalWinner ? 1 : 0;
+            existing.wins += isWin ? 1 : 0;
             existing.totalStaked += stake;
             existing.accuracies.push(precision);
           } else {
             expertStats.set(username, {
               username,
-              wins: isLocalWinner ? 1 : 0,
+              uid,
+              wins: isWin ? 1 : 0,
               totalStaked: stake,
               accuracies: [precision]
             });
           }
         });
       } catch (err) {
-        console.warn(`Skipping pool ${pool.id} in radar sync due to error:`, err);
+        console.warn(`Skipping pool ${pool.id} in radar sync:`, err);
       }
     }
     
     // INDUSTRY STANDARD SCORING ALGORITHM
-    const result = [...expertStats.values()]
-      .map(e => {
+    const result = await Promise.all([...expertStats.values()]
+      .map(async (e) => {
         const avgPrecision = e.accuracies.reduce((a, b) => a + b, 0) / e.accuracies.length;
-        const winRate = (e.wins / e.accuracies.length) * 100;
-        // WHALE SCORING: (SOL * 50) + (Wins * 100) + Avg Precision
-        const score = (e.totalStaked * 50) + (e.wins * 100) + (avgPrecision);
+        
+        // Fetch real lifetime stats for "Exact Perspective"
+        let lifetimeWins = 0;
+        let lifetimeWinRate = 0;
+        try {
+          const stats: any = await trepa.users.statistics(e.uid);
+          lifetimeWins = Number(stats.wins ?? stats.total_wins ?? 0);
+          lifetimeWinRate = Number(stats.win_rate ?? stats.winRate ?? 0);
+        } catch (err) {
+          console.warn(`Failed to fetch lifetime stats for ${e.username} (${e.uid})`);
+        }
+
+        // SCORING: Lifetime Wins + Lifetime Win Rate + Stake + Avg Precision
+        const score = (lifetimeWins * 100) + (lifetimeWinRate * 20) + (e.totalStaked * 10) + (avgPrecision);
         
         return {
           username: e.username,
-          wins: e.wins,
+          wins: lifetimeWins,
           totalStaked: e.totalStaked,
-          winRate: Math.round(winRate),
+          winRate: Math.round(lifetimeWinRate),
           avgPrecision: Math.round(avgPrecision),
           score: Math.round(score),
-          // A Whale bets big and wins often
-          isWhale: (e.totalStaked > 10 && e.wins > 1) 
+          isWhale: (e.totalStaked > 10 || lifetimeWins > 5) 
         };
-      })
+      }));
+
+    const finalWhales = result
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
-    if (result.length > 0) {
-      cachedWhales = result;
+    if (finalWhales.length > 0) {
+      cachedWhales = finalWhales;
       // Persist to disk for cold-start performance
-      fs.writeFileSync(CACHE_FILE, JSON.stringify(result, null, 2));
+      fs.writeFileSync(CACHE_FILE, JSON.stringify(finalWhales, null, 2));
     }
   } catch (error) {
     console.error('CRITICAL: Professional Whale Scan failed:', error);

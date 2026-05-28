@@ -1,5 +1,5 @@
-import { Trepa, credentialsFromEnv } from '@trepa/sdk'
-import fs from 'fs'
+import { Trepa, credentialsFromEnv } from '@trepa/sdk';
+import fs from 'fs';
 
 // Manual .env parser
 const envPath = './.env';
@@ -15,20 +15,20 @@ if (fs.existsSync(envPath)) {
 
 const trepa = new Trepa({ credentials: credentialsFromEnv() });
 
-async function debugPrecision() {
-  console.log('🚀 DEBUGGING PRECISION VALUES...');
+async function inspectPredictionUser() {
   try {
-    const poolId = "c9a11a94-d581-472a-8b5b-4d8d4e5d906c";
-    const predictions: any = await trepa.pools.predictions(poolId, { limit: 5, includes: ['user'] });
+    const streak = await trepa.streaks.bitcoin();
+    const pools: any = await trepa.streaks.pools(streak.id, { limit: 1 });
+    const pool = pools[0] || pools.pools[0];
     
-    console.log(`\n--- RAW PREDICTION DATA ---`);
-    predictions.forEach((p: any) => {
-        console.log(`User: @${p.user?.username} | Precision: ${p.precision} (Type: ${typeof p.precision})`);
-    });
+    console.log(`Checking predictions for pool ${pool.id}...`);
+    const predictions: any = await trepa.pools.predictions(pool.id, { limit: 1, includes: ['user'] });
     
-  } catch (error: any) {
-    console.error('❌ DEBUG FAILED:', error.message);
+    console.log('Prediction User Object:', JSON.stringify(predictions[0]?.user, null, 2));
+
+  } catch (err: any) {
+    console.error('Error:', err.message);
   }
 }
 
-debugPrecision();
+inspectPredictionUser();

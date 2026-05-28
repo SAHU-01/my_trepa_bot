@@ -1,92 +1,137 @@
 [
   {
-    "username": "dark_banker6760",
-    "wins": 0,
-    "totalStaked": 15,
-    "winRate": 0,
-    "avgPrecision": 2,
-    "score": 154,
-    "isWhale": false
-  },
-  {
     "username": "vilkeym",
-    "wins": 0,
-    "totalStaked": 15,
-    "winRate": 0,
+    "wins": 99,
+    "totalStaked": 99,
+    "winRate": 100,
     "avgPrecision": 2,
-    "score": 154,
-    "isWhale": false
-  },
-  {
-    "username": "alpenmilch411",
-    "wins": 0,
-    "totalStaked": 14,
-    "winRate": 0,
-    "avgPrecision": 2,
-    "score": 144,
-    "isWhale": false
+    "score": 6142,
+    "isWhale": true
   },
   {
     "username": "0xDontol",
-    "wins": 0,
-    "totalStaked": 14,
-    "winRate": 0,
+    "wins": 96,
+    "totalStaked": 96,
+    "winRate": 100,
     "avgPrecision": 2,
-    "score": 144,
-    "isWhale": false
+    "score": 5962,
+    "isWhale": true
+  },
+  {
+    "username": "alpenmilch411",
+    "wins": 80,
+    "totalStaked": 80,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 5002,
+    "isWhale": true
   },
   {
     "username": "supreme_trader4278",
-    "wins": 0,
-    "totalStaked": 14,
-    "winRate": 0,
+    "wins": 79,
+    "totalStaked": 79,
+    "winRate": 100,
     "avgPrecision": 2,
-    "score": 144,
-    "isWhale": false
-  },
-  {
-    "username": "tramcrypto68",
-    "wins": 0,
-    "totalStaked": 12,
-    "winRate": 0,
-    "avgPrecision": 2,
-    "score": 124,
-    "isWhale": false
-  },
-  {
-    "username": "icy_quant5272",
-    "wins": 0,
-    "totalStaked": 11,
-    "winRate": 0,
-    "avgPrecision": 2,
-    "score": 114,
-    "isWhale": false
-  },
-  {
-    "username": "trcevalker",
-    "wins": 0,
-    "totalStaked": 11,
-    "winRate": 0,
-    "avgPrecision": 2,
-    "score": 114,
-    "isWhale": false
+    "score": 4942,
+    "isWhale": true
   },
   {
     "username": "vijay",
-    "wins": 0,
-    "totalStaked": 9,
-    "winRate": 0,
+    "wins": 71,
+    "totalStaked": 71,
+    "winRate": 100,
     "avgPrecision": 2,
-    "score": 94,
-    "isWhale": false
+    "score": 4462,
+    "isWhale": true
   },
   {
-    "username": "MaiHien",
-    "wins": 0,
-    "totalStaked": 4,
-    "winRate": 0,
+    "username": "reubence",
+    "wins": 57,
+    "totalStaked": 57,
+    "winRate": 100,
     "avgPrecision": 2,
-    "score": 44,
-    "isWhale": false
+    "score": 3622,
+    "isWhale": true
+  },
+  {
+    "username": "dark_banker6760",
+    "wins": 51,
+    "totalStaked": 51,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 3262,
+    "isWhale": true
+  },
+  {
+    "username": "jongleur",
+    "wins": 48,
+    "totalStaked": 48,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 3082,
+    "isWhale": true
+  },
+  {
+    "username": "tramcrypto68",
+    "wins": 46,
+    "totalStaked": 46,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2962,
+    "isWhale": true
+  },
+  {
+    "username": "bold_wolf7180",
+    "wins": 40,
+    "totalStaked": 40,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2602,
+    "isWhale": true
+  },
+  {
+    "username": "hustling_holder4744",
+    "wins": 39,
+    "totalStaked": 39,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2542,
+    "isWhale": true
+  },
+  {
+    "username": "staker8888",
+    "wins": 38,
+    "totalStaked": 38,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2482,
+    "isWhale": true
+  },
+  {
+    "username": "fearless_prophet1910",
+    "wins": 38,
+    "totalStaked": 38,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2482,
+    "isWhale": true
+  },
+  {
+    "username": "silver_trader8359",
+    "wins": 37,
+    "totalStaked": 37,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2422,
+    "isWhale": true
+  },
+  {
+    "username": "clever_strategist5824",
+    "wins": 36,
+    "totalStaked": 36,
+    "winRate": 100,
+    "avgPrecision": 2,
+    "score": 2362,
+    "isWhale": true
   }
 ]
