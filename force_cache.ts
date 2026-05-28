@@ -47,16 +47,17 @@ async function forcePopulateCache() {
       totalStaked: number;
       accuracies: number[];
       poolCount: number;
+      recentWins: Array<{ poolId: string; precision: number; stake: number }>;
     }>();
     
     // Process pools in batches of 10 to be polite to the API
     for (let i = 0; i < pools.length; i += 10) {
       const batch = pools.slice(i, i + 10);
       const batchPredictions = await Promise.all(
-        batch.map(pool => trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] }))
+        batch.map(pool => trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] }).then(preds => ({ poolId: pool.id, predictions: preds })))
       );
       
-      batchPredictions.forEach((predictions: any) => {
+      batchPredictions.forEach(({ poolId, predictions }: any) => {
         if (!Array.isArray(predictions) || predictions.length === 0) return;
         
         // RELATIVE WIN LOGIC: A win is defined as being in the top 3 or top 10% of that round
@@ -80,6 +81,9 @@ async function forcePopulateCache() {
             existing.totalStaked += stake;
             existing.accuracies.push(precision);
             existing.poolCount += 1;
+            if (isWin && existing.recentWins.length < 5) {
+              existing.recentWins.push({ poolId, precision, stake });
+            }
           } else {
             expertStats.set(username, {
               username,
@@ -87,7 +91,8 @@ async function forcePopulateCache() {
               wins: isWin ? 1 : 0,
               totalStaked: stake,
               accuracies: [precision],
-              poolCount: 1
+              poolCount: 1,
+              recentWins: isWin ? [{ poolId, precision, stake }] : []
             });
           }
         });
@@ -110,7 +115,8 @@ async function forcePopulateCache() {
           winRate: Math.round(winRate),
           avgPrecision: Math.round(avgPrecision),
           score: Math.round(score),
-          isWhale: e.totalStaked > 10 || e.wins > 5
+          isWhale: e.totalStaked > 10 || e.wins > 5,
+          recentWins: e.recentWins
         };
       })
       .sort((a, b) => b.score - a.score)

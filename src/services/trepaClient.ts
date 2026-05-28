@@ -139,6 +139,7 @@ async function runBackgroundRefresh() {
       wins: number; 
       totalStaked: number;
       accuracies: number[];
+      recentWins: Array<{ poolId: string; precision: number; stake: number }>;
     }>();
     
     // Process pools to find relative winners
@@ -167,13 +168,17 @@ async function runBackgroundRefresh() {
             existing.wins += isWin ? 1 : 0;
             existing.totalStaked += stake;
             existing.accuracies.push(precision);
+            if (isWin && existing.recentWins.length < 5) {
+              existing.recentWins.push({ poolId: pool.id, precision, stake });
+            }
           } else {
             expertStats.set(username, {
               username,
               uid,
               wins: isWin ? 1 : 0,
               totalStaked: stake,
-              accuracies: [precision]
+              accuracies: [precision],
+              recentWins: isWin ? [{ poolId: pool.id, precision, stake }] : []
             });
           }
         });
@@ -208,7 +213,8 @@ async function runBackgroundRefresh() {
           winRate: Math.round(lifetimeWinRate),
           avgPrecision: Math.round(avgPrecision),
           score: Math.round(score),
-          isWhale: (e.totalStaked > 10 || lifetimeWins > 5) 
+          isWhale: (e.totalStaked > 10 || lifetimeWins > 5),
+          recentWins: e.recentWins
         };
       }));
 
@@ -236,7 +242,7 @@ export async function getHallOfFame() {
   // Use a timestamp to bypass GitHub's raw cache (crucial for "database" behavior)
   const GITHUB_RAW_URL = `https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/whales_cache.json?t=${Date.now()}`;
 
-  // If we already have data in memory and it's fresh enough (less than 1 min old), use it
+  // If we already have data in memory and it's from a high-quality source, keep it
   if (cachedWhales.length > 0 && refreshIntervalStarted) {
     return cachedWhales;
   }
@@ -245,36 +251,33 @@ export async function getHallOfFame() {
     console.log('📡 Fetching Whale Radar from GitHub Master...');
     const res = await fetch(GITHUB_RAW_URL, { 
       cache: 'no-store',
-      next: { revalidate: 0 } // Next.js specific cache bypass
+      next: { revalidate: 0 }
     });
     
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         cachedWhales = data;
-        refreshIntervalStarted = true; // Mark as "active" so we don't spam refreshes
-        console.log(`✅ Whale Radar synced from GitHub (${data.length} experts)`);
+        // CRITICAL: We found high-quality "Deep Scan" data. 
+        // We set refreshIntervalStarted to true but DO NOT start the interval.
+        // This prevents the low-quality 10-pool scan from overwriting the 100-pool data.
+        refreshIntervalStarted = true; 
+        console.log(`✅ Whale Radar synced from GitHub (${data.length} experts) - Refresh disabled to preserve quality`);
         return cachedWhales;
       }
     }
   } catch (err) {
-    console.error('⚠️ GitHub fetch failed, attempting background scan:', err);
+    console.error('⚠️ GitHub fetch failed, attempting emergency background scan:', err);
   }
 
-  // Fallback: If GitHub is empty or fails, run the heavy background scan
+  // FALLBACK: Only run the heavy 10-pool scan if GitHub is literally unreachable or empty
   if (!refreshIntervalStarted) {
     refreshIntervalStarted = true;
-    const now = new Date();
-    const isLiveHour = now.getUTCHours() === 13;
+    console.log('🔄 EMERGENCY: GitHub empty or unreachable. Starting low-quality background refresh...');
+    await runBackgroundRefresh();
     
-    // Only perform the heavy refresh if the GitHub fetch failed or returned empty
-    if (cachedWhales.length === 0) {
-      console.log('🔄 GitHub empty: Starting emergency background refresh...');
-      await runBackgroundRefresh();
-    }
-    
-    const interval = isLiveHour ? 1000 * 60 * 5 : 1000 * 60 * 60 * 12;
-    setInterval(runBackgroundRefresh, interval);
+    // Low-quality refresh interval (keep it infrequent to avoid API pressure)
+    setInterval(runBackgroundRefresh, 1000 * 60 * 60); 
   }
 
   return cachedWhales;

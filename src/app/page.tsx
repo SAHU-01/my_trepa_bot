@@ -343,8 +343,31 @@ export default function PredictionArena() {
                     <span className="text-gray-500 font-bold">Market Tier</span>
                     <span className="text-amber-500 font-bold">{selectedWhale.isWhale ? 'MARKET WHALE' : 'EXPERT'}</span>
                   </div>
+
+                  {/* Deep Intel: Recent Wins List */}
+                  <div className="space-y-1.5 pt-2 border-t border-white/5">
+                    <p className="text-[7px] font-mono text-emerald-500/50 uppercase tracking-widest">Recent Validated Wins</p>
+                    <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                      {selectedWhale.recentWins && selectedWhale.recentWins.length > 0 ? (
+                        selectedWhale.recentWins.map((win: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between p-1.5 rounded bg-black/40 border border-white/5 text-[8px] font-mono">
+                            <span className="text-gray-400">Pool {win.poolId.slice(0, 8)}</span>
+                            <div className="flex gap-2">
+                              <span className="text-emerald-500/70">{win.stake.toFixed(1)} SOL</span>
+                              <span className="text-emerald-400 font-bold">{win.precision}%</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-2 text-center text-gray-600 text-[8px] font-mono italic">
+                          Analyzing deep history...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="p-2 bg-black/40 rounded border border-white/5 text-[8px] text-gray-400 leading-tight italic">
-                    Scored as {selectedWhale.score.toLocaleString()} based on 30-pool volume and historical precision density.
+                    Scored as {selectedWhale.score.toLocaleString()} based on 100-pool deep scan and relative precision dominance.
                   </div>
                 </div>
               </div>

@@ -6,7 +6,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 6142,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "0xDontol",
@@ -15,7 +42,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 5962,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "alpenmilch411",
@@ -24,7 +78,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 5002,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "supreme_trader4278",
@@ -33,7 +114,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 4942,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "vijay",
@@ -42,7 +150,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 4462,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "9b4199d9-7e71-4df0-8f66-e3ae13ca99d0",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "c3f9f0b6-2d2e-40f4-9b2e-8bedb4d734a6",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "8e5017c1-2d06-4b96-9689-199f18f8ca20",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "reubence",
@@ -51,7 +186,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 3622,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "13ad9ce9-317c-48c6-9736-645c1455193b",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "c3f9f0b6-2d2e-40f4-9b2e-8bedb4d734a6",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "32b17bf8-f3fd-453d-9e51-d35d5b1c3b37",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "1332f9c4-26c8-4e30-9aff-e3a0407f3f15",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b93ded1c-caae-44ee-941c-f13ec19408e3",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "dark_banker6760",
@@ -60,7 +222,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 3262,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "jongleur",
@@ -69,7 +258,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 3082,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "d9de8cd4-fe43-4248-be79-041aa4a1d131",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "32b17bf8-f3fd-453d-9e51-d35d5b1c3b37",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "tramcrypto68",
@@ -78,7 +294,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2962,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "72c60bc9-1fe4-42f0-a6e1-ce2702a98198",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "bold_wolf7180",
@@ -87,7 +330,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2602,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "068bf5d3-4aa2-457b-b427-a2cfa4d0c1a1",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "8e5017c1-2d06-4b96-9689-199f18f8ca20",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "32b17bf8-f3fd-453d-9e51-d35d5b1c3b37",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "hustling_holder4744",
@@ -96,7 +366,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2542,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "13ad9ce9-317c-48c6-9736-645c1455193b",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "068bf5d3-4aa2-457b-b427-a2cfa4d0c1a1",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "staker8888",
@@ -105,7 +402,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2482,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "530cbfa1-40a0-4c4e-bd9d-2107b4e3bc30",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "967ee6c5-0011-4346-91d0-93a060cfc45c",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "260a165c-9ddb-4e0b-895c-6b2bf5ee20de",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "ca0ad2ea-9cf4-4f38-8ca8-ce3fa8861869",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "fearless_prophet1910",
@@ -114,7 +438,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2482,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "13ad9ce9-317c-48c6-9736-645c1455193b",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "068bf5d3-4aa2-457b-b427-a2cfa4d0c1a1",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "8e5017c1-2d06-4b96-9689-199f18f8ca20",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "silver_trader8359",
@@ -123,7 +474,34 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2422,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "b56918ff-4b92-4297-8e0d-27884753a3ce",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "13ad9ce9-317c-48c6-9736-645c1455193b",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "068bf5d3-4aa2-457b-b427-a2cfa4d0c1a1",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "8e5017c1-2d06-4b96-9689-199f18f8ca20",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   },
   {
     "username": "clever_strategist5824",
@@ -132,6 +510,33 @@
     "winRate": 100,
     "avgPrecision": 2,
     "score": 2362,
-    "isWhale": true
+    "isWhale": true,
+    "recentWins": [
+      {
+        "poolId": "3da65f33-82c1-432c-9170-06f125c6ec54",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "2c0d9ce4-99d9-4e2b-8877-0eb7b2183b4f",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "13ad9ce9-317c-48c6-9736-645c1455193b",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "068bf5d3-4aa2-457b-b427-a2cfa4d0c1a1",
+        "precision": 2,
+        "stake": 1
+      },
+      {
+        "poolId": "8e5017c1-2d06-4b96-9689-199f18f8ca20",
+        "precision": 2,
+        "stake": 1
+      }
+    ]
   }
 ]
