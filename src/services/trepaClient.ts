@@ -213,28 +213,35 @@ async function runBackgroundRefresh() {
  * Now fetches from the GitHub Raw URL to ensure persistence across Vercel restarts.
  */
 export async function getHallOfFame() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/whales_cache.json';
+  // Use a timestamp to bypass GitHub's raw cache (crucial for "database" behavior)
+  const GITHUB_RAW_URL = `https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/whales_cache.json?t=${Date.now()}`;
 
-  // If we already have data in memory and it's fresh enough, use it
+  // If we already have data in memory and it's fresh enough (less than 1 min old), use it
   if (cachedWhales.length > 0 && refreshIntervalStarted) {
     return cachedWhales;
   }
 
   try {
-    // 1. Try to fetch the latest "database" file from GitHub
-    const res = await fetch(GITHUB_RAW_URL, { cache: 'no-store' });
+    console.log('📡 Fetching Whale Radar from GitHub Master...');
+    const res = await fetch(GITHUB_RAW_URL, { 
+      cache: 'no-store',
+      next: { revalidate: 0 } // Next.js specific cache bypass
+    });
+    
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         cachedWhales = data;
-        console.log('✅ Whale Radar updated from GitHub Master');
+        refreshIntervalStarted = true; // Mark as "active" so we don't spam refreshes
+        console.log(`✅ Whale Radar synced from GitHub (${data.length} experts)`);
+        return cachedWhales;
       }
     }
   } catch (err) {
-    console.error('⚠️ Failed to fetch whales from GitHub, falling back to background refresh');
+    console.error('⚠️ GitHub fetch failed, attempting background scan:', err);
   }
 
-  // 2. Start the background refresh interval if not already running
+  // Fallback: If GitHub is empty or fails, run the heavy background scan
   if (!refreshIntervalStarted) {
     refreshIntervalStarted = true;
     const now = new Date();
@@ -242,6 +249,7 @@ export async function getHallOfFame() {
     
     // Only perform the heavy refresh if the GitHub fetch failed or returned empty
     if (cachedWhales.length === 0) {
+      console.log('🔄 GitHub empty: Starting emergency background refresh...');
       await runBackgroundRefresh();
     }
     
