@@ -46,12 +46,13 @@ $$Score = (Wins \times 50) + (SOL\ Staked \times 10) + (Win\ Rate \times 2) + Av
 
 This project leverages the following [Trepa Developer APIs](https://docs.trepa.io/developers/introduction):
 
-1.  **[Streaks API](https://docs.trepa.io/developers/api-reference/streaks):** Used to identify active Bitcoin Flash rounds and fetch historical pool lists for the Whale Radar.
-2.  **[Pools API](https://docs.trepa.io/developers/api-reference/pools):** Used to fetch real-time prediction data and specific pool metadata.
-3.  **[Predictions API](https://docs.trepa.io/developers/api-reference/predictions):** Powering the mirror logic by retrieving specific forecasts from the network.
-4.  **[Users API](https://docs.trepa.io/developers/api-reference/users):** Used to fetch deep lifetime statistics (wins, precision, stake) for identified whales.
+1.  **[List Pools](https://docs.trepa.io/api-reference/pools/list-pools):** Used to identify active Bitcoin Flash rounds and fetch historical pool lists for the Whale Radar.
+2.  **[List Pool Predictions](https://docs.trepa.io/api-reference/pools/list-a-pools-predictions):** Powering the mirror logic and Whale Radar analytics by retrieving specific forecasts and results from the network.
+3.  **[Get Streak Progress](https://docs.trepa.io/api-reference/users/get-your-progress-in-a-streak):** Used to verify streak-specific metadata and performance metrics.
+4.  **[Pool Leaderboard](https://docs.trepa.io/api-reference/pools/get-pool-leaderboard):** Referenced to validate the "Mirror Consensus" against official round standings.
 
-## 💻 Local Setup
+## 🐳 Whale Scoring Algorithm
+
 
 ### 1. Prerequisites
 - Node.js 20+
