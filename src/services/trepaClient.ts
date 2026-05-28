@@ -127,8 +127,8 @@ async function runBackgroundRefresh() {
   try {
     const bitcoinStreak = await trepa.streaks.bitcoin();
     
-    // SENIOR LEVEL: Use the verified SDK method for streak-specific pools
-    const poolsRaw: any = await trepa.streaks.pools(bitcoinStreak.id, { limit: 20 });
+    // Limit to 10 pools for Vercel Hobby performance (max 10s execution)
+    const poolsRaw: any = await trepa.streaks.pools(bitcoinStreak.id, { limit: 10 });
     const pools = Array.isArray(poolsRaw) ? poolsRaw : (poolsRaw?.pools || poolsRaw?.data || []);
     
     if (!pools || pools.length === 0) return;
@@ -140,40 +140,39 @@ async function runBackgroundRefresh() {
       accuracies: number[];
     }>();
     
-    const allPredictions = await Promise.all(
-      pools.map((pool: any) => trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] }))
-    );
-    
-    allPredictions.forEach((predictions: any) => {
-      if (!Array.isArray(predictions) || predictions.length === 0) return;
-      
-      // Senior Logic: Find the local winners of this specific pool
-      // RELATIVE PRECISION: Use the max precision found in this sample as the winning benchmark
-      const maxPrecision = Math.max(...predictions.map(p => Number(p.precision) || 0));
+    // Fetch predictions one by one or in small chunks to avoid overloading Trepa 500s
+    for (const pool of pools) {
+      try {
+        const predictions: any = await trepa.pools.predictions(pool.id, { limit: 10, includes: ['user'] });
+        if (!Array.isArray(predictions)) continue;
 
-      predictions.forEach(p => {
-        const username = p.user?.username || `anon-${p.predictor_account.slice(0, 4)}`;
-        const stake = Number(p.stake) || 0;
-        const precision = Number(p.precision) || 0;
-        const existing = expertStats.get(username);
-        
-        // WIN CRITERIA: Dominating the sample's precision
-        const isLocalWinner = (precision > 0 && precision >= maxPrecision);
+        const maxPrecision = Math.max(...predictions.map(p => Number(p.precision) || 0));
 
-        if (existing) {
-          existing.wins += isLocalWinner ? 1 : 0;
-          existing.totalStaked += stake;
-          existing.accuracies.push(precision);
-        } else {
-          expertStats.set(username, {
-            username,
-            wins: isLocalWinner ? 1 : 0,
-            totalStaked: stake,
-            accuracies: [precision]
-          });
-        }
-      });
-    });
+        predictions.forEach(p => {
+          const username = p.user?.username || `anon-${p.predictor_account.slice(0, 4)}`;
+          const stake = Number(p.stake) || 0;
+          const precision = Number(p.precision) || 0;
+          const existing = expertStats.get(username);
+          
+          const isLocalWinner = (precision > 0 && precision >= maxPrecision);
+
+          if (existing) {
+            existing.wins += isLocalWinner ? 1 : 0;
+            existing.totalStaked += stake;
+            existing.accuracies.push(precision);
+          } else {
+            expertStats.set(username, {
+              username,
+              wins: isLocalWinner ? 1 : 0,
+              totalStaked: stake,
+              accuracies: [precision]
+            });
+          }
+        });
+      } catch (err) {
+        console.warn(`Skipping pool ${pool.id} in radar sync due to error:`, err);
+      }
+    }
     
     // INDUSTRY STANDARD SCORING ALGORITHM
     const result = [...expertStats.values()]

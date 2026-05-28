@@ -218,7 +218,7 @@ export default function PredictionArena() {
   };
 
   return (
-    <div className="h-screen p-4 md:p-6 flex flex-col space-y-4 bg-[#0a0a0a] overflow-hidden">
+    <div className="min-h-screen md:h-screen p-4 md:p-6 flex flex-col space-y-4 bg-[#0a0a0a] md:overflow-hidden overflow-y-auto">
       {/* Navbar / Header */}
       <header className="flex-none w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4">
         <div className="text-center md:text-left space-y-1">
@@ -270,11 +270,11 @@ export default function PredictionArena() {
       </header>
 
       {/* Main Layout Area */}
-      <main className="flex-1 min-h-0 w-full max-w-[1600px] mx-auto overflow-hidden px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full pb-4">
+      <main className="flex-1 md:min-h-0 w-full max-w-[1600px] mx-auto md:overflow-hidden px-0 md:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-4 h-full pb-4">
           
           {/* Column 1: Whale Radar (Global Discovery) */}
-          <section className="glass p-4 rounded-2xl flex flex-col space-y-4 neon-border overflow-hidden bg-black/20">
+          <section className="glass p-4 rounded-2xl flex flex-col space-y-4 neon-border md:overflow-hidden bg-black/20 min-h-[400px] md:min-h-0">
             <div className="flex items-center justify-between text-[10px] font-mono text-emerald-500 uppercase tracking-widest border-b border-white/5 pb-2">
               <span className="flex items-center gap-2">
                 <Users className="w-3 h-3" />
@@ -283,7 +283,7 @@ export default function PredictionArena() {
               <span className="text-[8px] opacity-50">Scanning History</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+            <div className="flex-1 md:overflow-y-auto custom-scrollbar space-y-3 pr-1">
               {hallOfFame.length > 0 ? (
                 hallOfFame.map((whale, i) => (
                   <button
@@ -352,7 +352,7 @@ export default function PredictionArena() {
           </section>
 
           {/* Column 2-3: Precision Hub (Input & Main Visuals) */}
-          <section className="lg:col-span-2 glass p-6 md:px-10 md:py-6 rounded-2xl flex flex-col justify-between neon-border relative overflow-hidden bg-black/40">
+          <section className="lg:col-span-2 glass p-6 md:px-10 md:py-6 rounded-2xl flex flex-col justify-between neon-border relative md:overflow-hidden bg-black/40 min-h-[500px] md:min-h-0">
             {/* Last Result Recap Overlay */}
             {lastResult && !showResults && (
               <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
@@ -401,7 +401,7 @@ export default function PredictionArena() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-emerald-300 font-mono text-[9px] uppercase tracking-widest">
                   {activePool ? (
                     <>Pool: {activePool.title} • SPOT: ${currentPrice.toLocaleString()}</>
@@ -412,20 +412,20 @@ export default function PredictionArena() {
                 {activePool && mirrorPrediction && (
                   <button 
                     onClick={handleMirrorLock}
-                    className="flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 hover:bg-emerald-500/30 transition-all group"
+                    className="flex items-center justify-center gap-2 px-3 py-1.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 hover:bg-emerald-500/30 transition-all group w-full md:w-auto"
                   >
                     <Users className="w-3 h-3 group-hover:scale-110 transition-transform" />
                     MIRROR LOCK: ${Math.round(mirrorPrediction).toLocaleString()}
                   </button>
                 )}
               </div>
-              <h2 className="text-2xl font-bold text-white">1. Define Your Forecast</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white">1. Define Your Forecast</h2>
               <p className="text-gray-400 text-[11px] max-w-md leading-tight">
                 Observe the Top Experts and Mirror Bot signal on the right. Calibrate your target and commit before the lock.
               </p>
             </div>
 
-            <div className="py-2 flex-1 flex flex-col justify-center">
+            <div className="py-8 md:py-2 flex-1 flex flex-col justify-center">
               <PredictionSlider 
                 min={range.min} 
                 max={range.max} 
@@ -476,16 +476,16 @@ export default function PredictionArena() {
           </section>
 
           {/* Column 4: Signal Intel (Intelligence Sidebar) */}
-          <section className="glass p-6 rounded-2xl flex flex-col space-y-5 neon-border overflow-hidden bg-black/20">
+          <section className="glass p-6 rounded-2xl flex flex-col space-y-5 neon-border md:overflow-hidden bg-black/20 min-h-[450px] md:min-h-0">
             <h2 className="text-lg font-bold text-white flex items-center gap-3 flex-none">
               <Zap className="w-4 h-4 text-emerald-500" />
               Signal Intel
             </h2>
 
             {!showResults ? (
-              <div className="flex-1 min-h-0 flex flex-col space-y-5 overflow-hidden">
+              <div className="flex-1 min-h-0 flex flex-col space-y-5 md:overflow-hidden">
                 {/* Bot Logs Feed */}
-                <div className="bg-black/60 rounded-xl border border-white/5 p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+                <div className="bg-black/60 rounded-xl border border-white/5 p-4 flex-1 min-h-[200px] md:min-h-0 flex flex-col md:overflow-hidden">
                   <div className="flex items-center justify-between text-[8px] font-mono text-emerald-500/50 uppercase tracking-widest mb-3">
                     <span>Network Logs</span>
                     <span className="flex items-center gap-1.5">
@@ -493,7 +493,7 @@ export default function PredictionArena() {
                       Monitoring
                     </span>
                   </div>
-                  <div className="flex-1 font-mono text-[10px] space-y-2 overflow-y-auto custom-scrollbar flex flex-col-reverse opacity-60">
+                  <div className="flex-1 font-mono text-[10px] space-y-2 md:overflow-y-auto custom-scrollbar flex flex-col-reverse opacity-60">
                     {botLogs.length > 0 ? (
                       botLogs.map((log) => (
                         <div key={log.id} className="text-emerald-400/80">
@@ -516,7 +516,7 @@ export default function PredictionArena() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 min-h-0 space-y-5 overflow-y-auto custom-scrollbar pr-2 animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex-1 min-h-0 space-y-5 md:overflow-y-auto custom-scrollbar md:pr-2 animate-in fade-in zoom-in-95 duration-500">
                 {/* User Results */}
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                   <div className="flex justify-between items-center mb-1">
@@ -544,13 +544,13 @@ export default function PredictionArena() {
                   </div>
 
                   {activePool && topPredictors.length > 0 && !isLoading && (
-                    <div className="px-2 space-y-2 border-l border-emerald-500/20 ml-2 animate-in fade-in slide-in-from-top-1 duration-500">
+                    <div className="px-1 md:px-2 space-y-2 border-l border-emerald-500/20 ml-2 animate-in fade-in slide-in-from-top-1 duration-500">
                       {/* Whale Entry Alert */}
-                      {topPredictors.some(p => hallOfFame.find(w => w.username === p.username && w.isWhale)) && (
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-3 flex items-center gap-3 animate-pulse">
-                          <Zap className="w-4 h-4 text-amber-500" />
-                          <div className="text-[8px] font-bold text-amber-400 uppercase tracking-widest">
-                            Whale Entry Detected: {topPredictors.filter(p => hallOfFame.find(w => w.username === p.username && w.isWhale)).map(p => p.username).join(', ')}
+                      {topPredictors.some(p => hallOfFame.some(w => w.username === p.username && w.isWhale)) && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-3 flex items-center gap-2 animate-pulse">
+                          <Zap className="w-3 h-3 text-amber-500 flex-none" />
+                          <div className="text-[7px] md:text-[8px] font-bold text-amber-400 uppercase tracking-widest leading-tight">
+                            Whale Entry Detected
                           </div>
                         </div>
                       )}
@@ -563,25 +563,22 @@ export default function PredictionArena() {
                         const isGlobalWhale = hallOfFame.some(w => w.username === p.username && w.isWhale);
                         return (
                           <div key={i} className="flex items-center justify-between text-[10px] font-mono group">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 md:gap-2">
                               <span className="text-emerald-500/30 text-[8px]">#{i+1}</span>
                               <span className={cn(
-                                "transition-colors truncate max-w-[70px]",
+                                "transition-colors truncate max-w-[60px] md:max-w-[70px]",
                                 isGlobalWhale ? "text-amber-400 font-bold" : "text-gray-400 group-hover:text-white"
                               )}>{p.username}</span>
-                              {isGlobalWhale && (
-                                <span className="text-[6px] bg-amber-500/20 text-amber-500 px-1 rounded font-bold">WHALE</span>
-                              )}
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3">
                               <span className="text-emerald-500/60">${p.forecast.toLocaleString()}</span>
                               <button 
                                 onClick={() => setUserPrediction(p.forecast)}
-                                className="text-[7px] bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 px-1 rounded border border-emerald-500/20 transition-all opacity-0 group-hover:opacity-100"
+                                className="text-[7px] bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 px-1 rounded border border-emerald-500/20 transition-all opacity-0 group-hover:opacity-100 hidden md:block"
                               >
                                 MIRROR
                               </button>
-                              <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1 rounded text-[8px] min-w-[24px] text-center">{p.score}</span>
+                              <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1 rounded text-[8px] min-w-[20px] md:min-w-[24px] text-center">{p.score}</span>
                             </div>
                           </div>
                         );
@@ -614,31 +611,26 @@ export default function PredictionArena() {
                       ))}
                     </div>
                   )}
-
-                  {!activePool && !isLoading && aiPrediction && (
-                    <div className="absolute top-1 right-1 opacity-20">
-                       <div className="text-[6px] font-mono uppercase bg-lime-500/20 px-1 rounded">Warm-up Active</div>
-                    </div>
-                  )}
                 </div>
 
-                <div className="pt-2 space-y-3 pb-4">
+                <div className="pt-2 space-y-3 pb-8">
                   <p className="text-[9px] font-mono text-gray-500 text-center uppercase tracking-tighter">
                     3. Compare, Refine, and Conquer
                   </p>
                   {activePool ? (
                     <a 
-                      href={`https://trepa.io/pools/${activePool.id}`}
+                      href={`https://trepa.io/streaks/bitcoin`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded font-bold border border-white/20 text-xs transition-all duration-300 group"
+                      className="flex items-center justify-center gap-2 w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded font-bold border border-white/20 text-xs transition-all duration-300 group"
                     >
-                      PLACE REAL PREDICTION ON TREPA
+                      PLACE REAL PREDICTION
                       <Zap className="w-3 h-3 text-emerald-400 group-hover:animate-pulse" />
                     </a>
-                  ) : (                    <button 
+                  ) : (
+                    <button 
                       disabled
-                      className="w-full py-3 bg-white/5 text-gray-600 rounded font-bold border border-white/5 text-xs cursor-not-allowed"
+                      className="w-full py-4 bg-white/5 text-gray-600 rounded font-bold border border-white/5 text-xs cursor-not-allowed"
                     >
                       MARKET CLOSED
                     </button>
