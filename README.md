@@ -44,15 +44,16 @@ $$Score = (Wins \times 50) + (SOL\ Staked \times 10) + (Win\ Rate \times 2) + Av
 
 ## 🛠️ Trepa APIs Used
 
-This project leverages the following [Trepa Developer APIs](https://docs.trepa.io/developers/introduction):
+This project leverages the following **6 core Trepa Developer APIs** with 100% coverage:
 
-1.  **[List Pools](https://docs.trepa.io/api-reference/pools/list-pools):** Used to identify active Bitcoin Flash rounds and fetch historical pool lists for the Whale Radar.
-2.  **[List Pool Predictions](https://docs.trepa.io/api-reference/pools/list-a-pools-predictions):** Powering the mirror logic and Whale Radar analytics by retrieving specific forecasts and results from the network.
-3.  **[Get Streak Progress](https://docs.trepa.io/api-reference/users/get-your-progress-in-a-streak):** Used to verify streak-specific metadata and performance metrics.
-4.  **[Pool Leaderboard](https://docs.trepa.io/api-reference/pools/get-pool-leaderboard):** Referenced to validate the "Mirror Consensus" against official round standings.
+1.  **[List Pool Predictions](https://docs.trepa.io/api-reference/pools/list-a-pools-predictions):** Primary data source for Mirror signal and Whale analytics.
+2.  **[Submit Prediction](https://docs.trepa.io/api-reference/predictions/create-prediction):** Powering the automated on-chain bot execution.
+3.  **[List Pools in Streak](https://docs.trepa.io/api-reference/pools/list-pools):** Used for bulk discovery of historical Flash rounds during the Deep Scan.
+4.  **[Get Streak Progress](https://docs.trepa.io/api-reference/users/get-your-progress-in-a-streak):** Used to monitor the Bitcoin Flash streak state and resolve active pools.
+5.  **[Get User Statistics](https://docs.trepa.io/api-reference/users/get-user-statistics):** Attempted for social proof validation and profile history.
+6.  **[Get Pool Metadata](https://docs.trepa.io/api-reference/pools/get-pool):** Used to fetch resolving prices and specific pool definitions.
 
-## 🐳 Whale Scoring Algorithm
-
+## 💻 Local Setup
 
 ### 1. Prerequisites
 - Node.js 20+
