@@ -2,7 +2,7 @@
 
 A high-performance prediction dashboard and automated mirror bot built on the **Trepa SDK**. This project simulates professional trading "Intelligence" by mirroring the top-performing experts on the Trepa network.
 
-![Trepa Arena Dashboard](https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/images/clipboard-1779942741402.png)
+![Trepa Arena Dashboard](images/dashboard.png)
 
 ## 🚀 Key Features
 
@@ -10,6 +10,20 @@ A high-performance prediction dashboard and automated mirror bot built on the **
 - **Whale Radar:** A deep-scan analytics engine that tracks "Market Whales" (High Stake + High Precision) across 100+ historical rounds.
 - **AI Sentiment:** Real-time news analysis using Hugging Face (Mistral-7B) to provide a secondary "AI Signal."
 - **Auto-Mirror Bot:** A GitHub Action-powered bot that executes predictions during live rounds based on expert consensus.
+
+## 🤖 Dual-Automation System (Crons)
+
+This project uses a sophisticated two-tier automation system to keep the Arena live 24/7 without manual intervention.
+
+### 1. The Mirror Bot (GitHub Actions)
+- **Schedule:** Every minute during the 13:00 UTC live hour (`* 13 * * *`).
+- **Role:** The **"Muscle."** It joins the active Bitcoin Flash pools, calculates the Mirror Signal, and submits predictions on-chain.
+- **Persistence:** It sends real-time logs to the Vercel API so you can monitor its performance on the dashboard.
+
+### 2. The Whale Radar Sync (GitHub + Vercel)
+- **Schedule:** Once daily at 13:00 UTC (`0 13 * * *`).
+- **Role:** The **"Brain."** It performs a 100-pool deep scan to find the most successful experts (99+ wins) and calculates their Authority Scores.
+- **Database Strategy:** To bypass Vercel's ephemeral file system, this cron **commits and pushes** the updated `whales_cache.json` back to GitHub. The dashboard then fetches this "Live Database" file directly from the GitHub Raw CDN.
 
 ## 🐳 Whale Scoring Algorithm
 
@@ -68,11 +82,13 @@ npm run dev
 
 **Terminal 2: The Mirror Bot**
 ```bash
+# This will listen for new rounds and mirror experts
 npx tsx bot.ts
 ```
 
 **Optional: Manual Whale Refresh**
 ```bash
+# Performs a 100-pool deep scan to populate your local database
 npx tsx force_cache.ts
 ```
 
