@@ -3,6 +3,10 @@
     {
       "path": "/api/pools/hall-of-fame",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/bot/mirror-trigger",
+      "schedule": "* * * * *"
     }
   ]
 }

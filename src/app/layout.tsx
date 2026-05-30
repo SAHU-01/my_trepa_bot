@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Trepa Prediction Arena",
@@ -16,7 +17,9 @@ export default function RootLayout({
       <body className="antialiased overflow-x-hidden selection:bg-purple-500 selection:text-white" suppressHydrationWarning>
         <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
         <main className="relative z-10">
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </main>
       </body>
     </html>

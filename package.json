@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@huggingface/inference": "^2.8.1",
+    "@privy-io/react-auth": "^3.28.0",
+    "@privy-io/server-auth": "^1.32.5",
+    "@supabase/supabase-js": "^2.106.2",
     "@trepa/sdk": "^0.2.7",
     "clsx": "^2.1.1",
     "lucide-react": "^0.453.0",

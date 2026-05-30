@@ -1,4 +1,5 @@
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
+import { logAudit } from './supabaseClient';
 
 /**
  * Trepa Prediction Arena - Service Layer
@@ -10,6 +11,50 @@ import { credentialsFromEnv, Trepa } from '@trepa/sdk';
 // Initialize the Trepa SDK with credentials from environment variables
 const trepa = new Trepa({ credentials: credentialsFromEnv() });
 
+/**
+ * Utility to wrap SDK calls with audit logging.
+ */
+async function withAudit<T>(
+  name: string,
+  method: string,
+  fn: () => Promise<T>,
+  payload?: any
+): Promise<T> {
+  const start = Date.now();
+  try {
+    const result = await fn();
+    const duration = Date.now() - start;
+    
+    // Log success
+    logAudit({
+      event_type: 'API_CALL',
+      method,
+      endpoint: name,
+      status: 200,
+      payload,
+      response: result,
+      duration_ms: duration
+    });
+    
+    return result;
+  } catch (error: any) {
+    const duration = Date.now() - start;
+    
+    // Log error
+    logAudit({
+      event_type: 'ERROR',
+      method,
+      endpoint: name,
+      status: error.status || 500,
+      payload,
+      response: { message: error.message, body: error.body, code: error.code },
+      duration_ms: duration
+    });
+    
+    throw error;
+  }
+}
+
 // Cache for user precision scores to minimize API calls
 const scoreCache = new Map<string, number>();
 
@@ -18,7 +63,7 @@ const scoreCache = new Map<string, number>();
  * This function handles fetching a pool.
  */
 export async function getPool(poolId: string) {
-  return await trepa.pools.get(poolId);
+  return await withAudit('pools.get', 'GET', () => trepa.pools.get(poolId), { poolId });
 }
 
 /**
@@ -52,8 +97,8 @@ export async function getActiveBitcoinPool() {
   }
 
   try {
-    const bitcoinStreak = await trepa.streaks.bitcoin();
-    const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
+    const bitcoinStreak = await withAudit('streaks.bitcoin', 'GET', () => trepa.streaks.bitcoin());
+    const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
     const pool = details.current_pool;
 
     const isTrulyActive = pool && 
@@ -63,7 +108,7 @@ export async function getActiveBitcoinPool() {
     let expertCount = 0;
     if (isTrulyActive) {
       // Limit to 50 for count purposes to reduce API load
-      const predictions = await trepa.pools.predictions(pool.id, { limit: 50 });
+      const predictions = await withAudit('pools.predictions', 'GET', () => trepa.pools.predictions(pool.id, { limit: 50 }), { poolId: pool.id });
       expertCount = predictions.length;
       const result = { pool, expertCount };
       cachedActivePool = result;
@@ -88,7 +133,7 @@ export async function getPrecisionScore(userId: string): Promise<number> {
   if (scoreCache.has(userId)) return scoreCache.get(userId)!;
   
   try {
-    const stats: any = await trepa.users.statistics(userId);
+    const stats: any = await withAudit('users.statistics', 'GET', () => trepa.users.statistics(userId), { userId });
     const score = stats?.precision_score ?? 
                  stats?.precisionScore ?? 
                  stats?.average_precision_score ?? 
