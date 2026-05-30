@@ -63,7 +63,7 @@ export async function GET(req: Request) {
         // EXECUTION LOGIC:
         // In a real production setup, we would call Privy Server Wallet API here.
         // For the Arena Prototype, we log the "Mirror Intent" and record the trade activity.
-        const forecastValue = Number(prediction.value || prediction.prediction);
+        const forecastValue = Number(prediction.prediction);
         const stakeAmount = Math.min(Number(follower.max_stake), Number(pool.max_stake || 10));
 
         try {

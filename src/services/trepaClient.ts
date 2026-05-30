@@ -369,7 +369,7 @@ export async function mirrorForecast(poolId: string, myUserId?: string) {
   // Fetch precision scores for all unique predictors
   const scored = await Promise.all(
     [...uniqueByUser.entries()].map(async ([uid, p]) => {
-      const value = Number(p.value ?? p.prediction);
+      const value = Number(p.prediction);
       const score = await getPrecisionScore(uid);
       return {
         uid,

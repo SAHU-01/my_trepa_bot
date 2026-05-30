@@ -5,7 +5,8 @@ import PredictionSlider from '@/components/PredictionSlider';
 import { Cpu, Users, User, Zap, Terminal, LogOut, Settings, Bell, History } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth/solana';
 import { supabase } from '@/services/supabaseClient';
 
 function cn(...inputs: ClassValue[]) {
@@ -61,7 +62,8 @@ export default function PredictionArena() {
 
   // Fetch User's Follows and Activity from Supabase
   useEffect(() => {
-    if (!authenticated || !user?.wallet?.address) return;
+    const userAddress = wallets[0]?.address;
+    if (!authenticated || !userAddress) return;
 
     const fetchSupabaseData = async () => {
       setIsSyncingFollows(true);
@@ -70,7 +72,7 @@ export default function PredictionArena() {
         const { data: follows, error: followError } = await supabase
           .from('user_follows')
           .select('whale_username')
-          .eq('user_address', user.wallet!.address)
+          .eq('user_address', userAddress)
           .eq('is_active', true);
         
         if (!followError) setFollowing(follows.map(f => f.whale_username));
@@ -79,7 +81,7 @@ export default function PredictionArena() {
         const { data: activity, error: activityError } = await supabase
           .from('mirror_activity')
           .select('*')
-          .eq('user_address', user.wallet!.address)
+          .eq('user_address', userAddress)
           .order('created_at', { ascending: false })
           .limit(10);
         
@@ -89,7 +91,7 @@ export default function PredictionArena() {
     };
 
     fetchSupabaseData();
-  }, [authenticated, user]);
+  }, [authenticated, wallets]);
 
   const toggleFollow = async (whaleUsername: string) => {
     if (!authenticated) {
@@ -98,7 +100,7 @@ export default function PredictionArena() {
     }
 
     const isFollowing = following.includes(whaleUsername);
-    const userAddress = user?.wallet?.address;
+    const userAddress = wallets[0]?.address;
     if (!userAddress) return;
 
     try {
@@ -250,7 +252,7 @@ export default function PredictionArena() {
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] text-white font-mono font-bold">
-                    {user?.wallet?.address.slice(0, 6)}...{user?.wallet?.address.slice(-4)}
+                    {wallets[0]?.address.slice(0, 6)}...{wallets[0]?.address.slice(-4)}
                   </span>
                   <span className="text-[8px] text-emerald-500 font-mono uppercase">Connected</span>
                 </div>
