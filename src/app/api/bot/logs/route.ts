@@ -1,28 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/services/supabaseClient';
 
-// In-memory log storage for the demo. 
-// Note: This will reset when the Next.js server restarts.
-let logs: Array<{ id: string; timestamp: string; tag: string; message: string }> = [];
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({ logs });
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('bot_logs')
+      .select('id, tag, message, timestamp')
+      .order('timestamp', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      logs: (data ?? []).map((r: any) => ({
+        id: r.id,
+        tag: r.tag,
+        message: r.message,
+        timestamp: r.timestamp,
+      })),
+    });
+  } catch {
+    return NextResponse.json({ logs: [] });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { tag, message } = body;
-
-    const newLog = {
-      id: Math.random().toString(36).substring(7),
-      timestamp: new Date().toISOString(),
-      tag,
-      message,
-    };
-
-    // Keep only the last 20 logs
-    logs = [newLog, ...logs].slice(0, 20);
-
+    const { tag, message } = await req.json();
+    await supabaseAdmin.from('bot_logs').insert([{ tag, message }]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to add log' }, { status: 500 });
