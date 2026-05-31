@@ -87,8 +87,11 @@ let lastPoolFetch = 0;
 const POOL_CACHE_TTL = 3000; // 3 seconds
 
 /**
- * Fetches the current active pool for the Bitcoin Flash streak.
- * Optimized with parallel fetching and short-lived caching.
+ * Fetches the current active/watch-phase pool for the Bitcoin Flash streak.
+ *
+ * Strategy: `streaks.poolDetails().current_pool` is null when the pool is in
+ * PREDICTIONS_FROZEN (Watch Phase). So we also check `next_pool` and fall back
+ * to the most-recently-started pool from `streaks.pools()` that isn't closed.
  */
 export async function getActiveBitcoinPool() {
   const now = Date.now();
@@ -100,11 +103,25 @@ export async function getActiveBitcoinPool() {
     const bitcoinStreak = await withAudit('streaks.bitcoin', 'GET', () => trepa.streaks.bitcoin());
     if (!bitcoinStreak?.id) return { pool: null, expertCount: 0 };
 
+    // Try poolDetails first — current_pool is only set when ACTIVE (prediction window open)
     const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
-    const pool = details?.current_pool;
 
-    // Return the current pool regardless of prediction window status.
-    // The Trepa API controls what "current" means — Watch Phase pools are still current.
+    let pool = details?.current_pool ?? null;
+
+    // If no current_pool, the pool may be in Watch Phase (PREDICTIONS_FROZEN).
+    // Fall back to the most recent non-closed pool from the pools list.
+    if (!pool) {
+      const poolsRaw: any = await withAudit('streaks.pools', 'GET', () => trepa.streaks.pools(bitcoinStreak.id, { limit: 5 }), { streakId: bitcoinStreak.id });
+      const pools: any[] = Array.isArray(poolsRaw) ? poolsRaw : (poolsRaw?.pools || poolsRaw?.data || []);
+
+      // Find most recent pool that is not fully closed/resolved
+      const candidate = pools
+        .filter(p => !p.is_closed && p.status !== 'CLAIMS_FROZEN' && p.status !== 'FROZEN')
+        .sort((a, b) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0];
+
+      pool = candidate ?? null;
+    }
+
     if (!pool) {
       const fallback = { pool: null, expertCount: 0 };
       cachedActivePool = fallback;
@@ -112,7 +129,7 @@ export async function getActiveBitcoinPool() {
       return fallback;
     }
 
-    // Only fetch prediction count if the prediction window is still open
+    // Only fetch expert count during the prediction window
     let expertCount = 0;
     const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
     if (predictionWindowOpen) {
