@@ -1,58 +1,17 @@
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
-import { logAudit } from './supabaseClient';
-
-/**
- * Trepa Prediction Arena - Service Layer
- * 
- * This service abstracts the Trepa SDK to provide a clean interface for the application.
- * It includes logic for fetching pools, calculating precision scores, and mirroring forecasts.
- */
 
 // Initialize the Trepa SDK with credentials from environment variables
 const trepa = new Trepa({ credentials: credentialsFromEnv() });
 
-/**
- * Utility to wrap SDK calls with audit logging.
- */
+// Thin wrapper — just calls fn() directly. audit_logs table was never created
+// so the previous logAudit() calls were causing 404 errors on every SDK call.
 async function withAudit<T>(
-  name: string,
-  method: string,
+  _name: string,
+  _method: string,
   fn: () => Promise<T>,
-  payload?: any
+  _payload?: any
 ): Promise<T> {
-  const start = Date.now();
-  try {
-    const result = await fn();
-    const duration = Date.now() - start;
-    
-    // Log success
-    logAudit({
-      event_type: 'API_CALL',
-      method,
-      endpoint: name,
-      status: 200,
-      payload,
-      response: result,
-      duration_ms: duration
-    });
-    
-    return result;
-  } catch (error: any) {
-    const duration = Date.now() - start;
-    
-    // Log error
-    logAudit({
-      event_type: 'ERROR',
-      method,
-      endpoint: name,
-      status: error.status || 500,
-      payload,
-      response: { message: error.message, body: error.body, code: error.code },
-      duration_ms: duration
-    });
-    
-    throw error;
-  }
+  return fn();
 }
 
 // Cache for user precision scores to minimize API calls

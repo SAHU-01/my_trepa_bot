@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getActiveBitcoinPool, trepa } from '@/services/trepaClient';
-import { supabaseAdmin as supabase, logAudit } from '@/services/supabaseClient';
+import { supabaseAdmin as supabase } from '@/services/supabaseClient';
 
 /**
  * WHALE MIRROR ENGINE (Triggered via Cron)
@@ -84,15 +84,6 @@ export async function GET(req: Request) {
 
           if (activityError) throw activityError;
           results.mirrored++;
-          
-          logAudit({
-            event_type: 'TRADE_EXECUTION',
-            method: 'MIRROR',
-            endpoint: whaleUsername,
-            status: 200,
-            payload: { follower: follower.user_address, whale: whaleUsername, value: forecastValue },
-            duration_ms: Date.now() - start
-          });
         } catch (e: any) {
           results.errors.push(`Failed for ${follower.user_address}: ${e.message}`);
         }
@@ -106,13 +97,6 @@ export async function GET(req: Request) {
     });
 
   } catch (error: any) {
-    logAudit({
-      event_type: 'ERROR',
-      method: 'MIRROR_TRIGGER',
-      endpoint: 'engine',
-      status: 500,
-      response: { message: error.message }
-    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
