@@ -139,7 +139,8 @@ export default function PredictionArena() {
         const poolRes = await fetch('/api/pools/active');
         const data = await poolRes.json();
         
-        if (data.pool && activePool && data.pool.id !== activePool.id) {
+        // Transition logic: Trigger result modal if pool ends or changes
+        if (activePool && (!data.pool || data.pool.id !== activePool.id)) {
           setLastResult({
             poolTitle: activePool.title,
             finalPrice: price,
@@ -153,6 +154,17 @@ export default function PredictionArena() {
           setAiPrediction(null);
           setUserPrediction(Math.round(price));
         }
+
+        // Dynamic Range Adjustment (ensure spot is always visible)
+        setRange(prev => {
+          const buffer = price * 0.1; // 10% buffer
+          if (price < prev.min + (buffer/2) || price > prev.max - (buffer/2)) {
+            const newMin = Math.floor(price - buffer);
+            const newMax = Math.ceil(price + buffer);
+            return { min: newMin, max: newMax };
+          }
+          return prev;
+        });
 
         setActivePool(data.pool || null);
         setExpertCount(data.expertCount || 0);

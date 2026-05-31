@@ -10,7 +10,9 @@ const nextConfig = {
     '@solana-program/system',
     '@solana-program/token'
   ],
-  turbopack: {},
+  turbopack: {
+    root: '.',
+  },
 };
 
 export default nextConfig;

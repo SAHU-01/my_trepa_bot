@@ -98,8 +98,10 @@ export async function getActiveBitcoinPool() {
 
   try {
     const bitcoinStreak = await withAudit('streaks.bitcoin', 'GET', () => trepa.streaks.bitcoin());
+    if (!bitcoinStreak?.id) return { pool: null, expertCount: 0 };
+
     const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
-    const pool = details.current_pool;
+    const pool = details?.current_pool;
 
     const isTrulyActive = pool && 
                           pool.status === 'ACTIVE' && 
@@ -109,7 +111,7 @@ export async function getActiveBitcoinPool() {
     if (isTrulyActive) {
       // Limit to 50 for count purposes to reduce API load
       const predictions = await withAudit('pools.predictions', 'GET', () => trepa.pools.predictions(pool.id, { limit: 50 }), { poolId: pool.id });
-      expertCount = predictions.length;
+      expertCount = Array.isArray(predictions) ? predictions.length : 0;
       const result = { pool, expertCount };
       cachedActivePool = result;
       lastPoolFetch = Date.now();
@@ -171,12 +173,16 @@ async function runBackgroundRefresh() {
   isRefreshing = true;
   try {
     const bitcoinStreak = await trepa.streaks.bitcoin();
+    if (!bitcoinStreak?.id) throw new Error('Bitcoin streak not found');
     
     // Limit to 10 pools for Vercel Hobby performance (max 10s execution)
     const poolsRaw: any = await trepa.streaks.pools(bitcoinStreak.id, { limit: 10 });
     const pools = Array.isArray(poolsRaw) ? poolsRaw : (poolsRaw?.pools || poolsRaw?.data || []);
     
-    if (!pools || pools.length === 0) return;
+    if (!pools || pools.length === 0) {
+      isRefreshing = false;
+      return;
+    }
 
     const expertStats = new Map<string, { 
       username: string; 
@@ -189,6 +195,7 @@ async function runBackgroundRefresh() {
     
     // Process pools to find relative winners
     for (const pool of pools) {
+      if (!pool?.id) continue;
       try {
         const predictions: any = await trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] });
         if (!Array.isArray(predictions) || predictions.length === 0) continue;
@@ -201,8 +208,10 @@ async function runBackgroundRefresh() {
         const winThreshold = resolved[Math.floor(resolved.length * 0.1)]?.precision || resolved[0]?.precision || 100;
 
         predictions.forEach(p => {
-          const username = p.user?.username || `anon-${p.predictor_account.slice(0, 4)}`;
+          const username = p.user?.username || `anon-${(p.predictor_account || '0000').slice(0, 4)}`;
           const uid = p.user?.id || p.predictor_account;
+          if (!uid) return;
+          
           const stake = Number(p.stake) || 0;
           const precision = Number(p.precision) || 0;
           const existing = expertStats.get(username);
@@ -337,9 +346,8 @@ export async function mirrorForecast(poolId: string, myUserId?: string) {
   let predictions: any[] = [];
   try {
     // Use the new straightforward predictions endpoint from @trepa/sdk v0.2.x
-    // We include 'user' to get usernames and social proof
-    // Limit to 20 to avoid overloading the API
-    predictions = await trepa.pools.predictions(poolId, { limit: 20, includes: ['user'] });
+    const res: any = await trepa.pools.predictions(poolId, { limit: 20, includes: ['user'] });
+    predictions = Array.isArray(res) ? res : (res?.data || []);
   } catch (error) {
     console.error(`Error in mirrorForecast for pool ${poolId}:`, error);
     return { prediction: null, topPredictors: [] };
@@ -349,7 +357,7 @@ export async function mirrorForecast(poolId: string, myUserId?: string) {
   const others = predictions.filter(
     p => {
       const uid = p?.user?.id ?? p?.predictor_account;
-      return uid !== myUserId;
+      return uid && uid !== myUserId;
     }
   );
 
@@ -361,7 +369,9 @@ export async function mirrorForecast(poolId: string, myUserId?: string) {
     const uid = p?.user?.id ?? p?.predictor_account;
     if (!uid) continue;
     const existing = uniqueByUser.get(uid);
-    if (!existing || new Date(p.updated_at) > new Date(existing.updated_at)) {
+    const pDate = p.updated_at ? new Date(p.updated_at) : new Date(0);
+    const eDate = existing?.updated_at ? new Date(existing.updated_at) : new Date(0);
+    if (!existing || pDate > eDate) {
       uniqueByUser.set(uid, p);
     }
   }
@@ -369,7 +379,7 @@ export async function mirrorForecast(poolId: string, myUserId?: string) {
   // Fetch precision scores for all unique predictors
   const scored = await Promise.all(
     [...uniqueByUser.entries()].map(async ([uid, p]) => {
-      const value = Number(p.prediction);
+      const value = Number(p.prediction ?? p.value);
       const score = await getPrecisionScore(uid);
       return {
         uid,

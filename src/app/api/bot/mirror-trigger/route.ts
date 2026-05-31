@@ -30,7 +30,8 @@ export async function GET(req: Request) {
     if (!pool) return NextResponse.json({ message: 'No active pool' });
 
     // 2. Fetch all predictions for this pool
-    const predictions = await trepa.pools.predictions(pool.id, { limit: 50, includes: ['user'] });
+    const predictionsRaw: any = await trepa.pools.predictions(pool.id, { limit: 50, includes: ['user'] });
+    const predictions = Array.isArray(predictionsRaw) ? predictionsRaw : (predictionsRaw?.data || []);
     results.scanned = predictions.length;
 
     // 3. Find active followers in our database
