@@ -103,23 +103,30 @@ export async function getActiveBitcoinPool() {
     const bitcoinStreak = await withAudit('streaks.bitcoin', 'GET', () => trepa.streaks.bitcoin());
     if (!bitcoinStreak?.id) return { pool: null, expertCount: 0 };
 
-    // Try poolDetails first — current_pool is only set when ACTIVE (prediction window open)
-    const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
+    // Fetch recent pools directly — more reliable than current_pool which is
+    // null during Watch Phase and sometimes during ACTIVE too.
+    const poolsRaw: any = await withAudit('streaks.pools', 'GET',
+      () => trepa.streaks.pools(bitcoinStreak.id, { limit: 10 } as any),
+      { streakId: bitcoinStreak.id }
+    );
+    const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
 
-    let pool = details?.current_pool ?? null;
+    const now = new Date();
 
-    // If no current_pool, the pool may be in Watch Phase (PREDICTIONS_FROZEN).
-    // Fall back to the most recent non-closed pool from the pools list.
+    // 1. Prefer a pool whose prediction window includes right now
+    let pool = pools.find(p =>
+      !p.is_closed &&
+      p.prediction_start_date && p.prediction_end_date &&
+      new Date(p.prediction_start_date) <= now &&
+      now < new Date(p.prediction_end_date)
+    ) ?? null;
+
+    // 2. Fall back to the most recent non-closed pool (Watch Phase)
     if (!pool) {
-      const poolsRaw: any = await withAudit('streaks.pools', 'GET', () => trepa.streaks.pools(bitcoinStreak.id, { limit: 5 }), { streakId: bitcoinStreak.id });
-      const pools: any[] = Array.isArray(poolsRaw) ? poolsRaw : (poolsRaw?.pools || poolsRaw?.data || []);
-
-      // Find most recent pool that is not fully closed/resolved
-      const candidate = pools
+      pool = pools
         .filter(p => !p.is_closed && p.status !== 'CLAIMS_FROZEN' && p.status !== 'FROZEN')
-        .sort((a, b) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0];
-
-      pool = candidate ?? null;
+        .sort((a: any, b: any) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0]
+        ?? null;
     }
 
     if (!pool) {
@@ -133,7 +140,10 @@ export async function getActiveBitcoinPool() {
     let expertCount = 0;
     const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
     if (predictionWindowOpen) {
-      const predictions = await withAudit('pools.predictions', 'GET', () => trepa.pools.predictions(pool.id, { limit: 50 }), { poolId: pool.id });
+      const predictions = await withAudit('pools.predictions', 'GET',
+        () => trepa.pools.predictions(pool.id, { limit: 50 }),
+        { poolId: pool.id }
+      );
       expertCount = Array.isArray(predictions) ? predictions.length : 0;
     }
 
@@ -141,8 +151,8 @@ export async function getActiveBitcoinPool() {
     cachedActivePool = result;
     lastPoolFetch = Date.now();
     return result;
-  } catch (error) {
-    console.error('Error fetching active pool:', error);
+  } catch (error: any) {
+    console.error('Error fetching active pool:', error?.message ?? error);
     return { pool: null, expertCount: 0 };
   }
 }
