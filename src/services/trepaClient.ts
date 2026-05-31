@@ -103,25 +103,27 @@ export async function getActiveBitcoinPool() {
     const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
     const pool = details?.current_pool;
 
-    const isTrulyActive = pool &&
-                          pool.prediction_end_date &&
-                          new Date() < new Date(pool.prediction_end_date);
-
-    let expertCount = 0;
-    if (isTrulyActive) {
-      // Limit to 50 for count purposes to reduce API load
-      const predictions = await withAudit('pools.predictions', 'GET', () => trepa.pools.predictions(pool.id, { limit: 50 }), { poolId: pool.id });
-      expertCount = Array.isArray(predictions) ? predictions.length : 0;
-      const result = { pool, expertCount };
-      cachedActivePool = result;
+    // Return the current pool regardless of prediction window status.
+    // The Trepa API controls what "current" means — Watch Phase pools are still current.
+    if (!pool) {
+      const fallback = { pool: null, expertCount: 0 };
+      cachedActivePool = fallback;
       lastPoolFetch = Date.now();
-      return result;
+      return fallback;
     }
 
-    const fallback = { pool: null, expertCount: 0 };
-    cachedActivePool = fallback;
+    // Only fetch prediction count if the prediction window is still open
+    let expertCount = 0;
+    const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
+    if (predictionWindowOpen) {
+      const predictions = await withAudit('pools.predictions', 'GET', () => trepa.pools.predictions(pool.id, { limit: 50 }), { poolId: pool.id });
+      expertCount = Array.isArray(predictions) ? predictions.length : 0;
+    }
+
+    const result = { pool, expertCount };
+    cachedActivePool = result;
     lastPoolFetch = Date.now();
-    return fallback;
+    return result;
   } catch (error) {
     console.error('Error fetching active pool:', error);
     return { pool: null, expertCount: 0 };

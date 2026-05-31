@@ -167,6 +167,8 @@ export default function PredictionArena() {
           const endTime = new Date(data.pool.prediction_end_date).getTime();
           const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
           setPoolTimeLeft(timeLeft);
+        } else {
+          setPoolTimeLeft(null);
         }
       } catch (e) {}
     };
@@ -287,14 +289,20 @@ export default function PredictionArena() {
               {activePool && poolTimeLeft !== null && (
                 <div className="absolute left-0 top-0 bottom-0 bg-emerald-500/10 transition-all duration-1000 ease-linear" style={{ width: `${(poolTimeLeft / 60) * 100}%` }} />
               )}
-              <span className={cn("w-1.5 h-1.5 rounded-full z-10", activePool ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+              <span className={cn(
+                "w-1.5 h-1.5 rounded-full z-10",
+                activePool && poolTimeLeft !== null && poolTimeLeft > 0 ? "bg-emerald-500 animate-pulse" :
+                activePool ? "bg-blue-400 animate-pulse" : "bg-amber-500"
+              )} />
               <div className="flex items-center gap-2 z-10">
                 {activePool ? (
-                  <>
-                    <span className={cn(poolTimeLeft !== null && poolTimeLeft < 15 ? "text-red-500 font-bold" : "")}>
-                      {poolTimeLeft !== null ? `${poolTimeLeft}S UNTIL LOCK` : 'MARKET LIVE'}
+                  poolTimeLeft !== null && poolTimeLeft > 0 ? (
+                    <span className={cn(poolTimeLeft < 15 ? "text-red-500 font-bold" : "")}>
+                      {poolTimeLeft}S UNTIL LOCK
                     </span>
-                  </>
+                  ) : (
+                    <span className="text-blue-400 font-bold">WATCH PHASE</span>
+                  )
                 ) : "WARM-UP MODE"}
                 {!activePool && countdown && (
                   <span className="border-l border-white/10 pl-3 ml-1 font-bold text-white tracking-widest">{countdown}</span>
@@ -509,13 +517,19 @@ export default function PredictionArena() {
             <div className="space-y-4">
               <button
                 onClick={handleFetchPredictions}
-                disabled={isLoading || isSubmitting}
+                disabled={isLoading || isSubmitting || (activePool != null && (poolTimeLeft === null || poolTimeLeft === 0))}
                 className={cn(
                   "w-full py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-[1.01] relative overflow-hidden",
-                  activePool ? "bg-gradient-to-r from-emerald-600 to-lime-600 text-white" : "bg-white/5 border border-white/10 text-white"
+                  activePool && poolTimeLeft !== null && poolTimeLeft > 0
+                    ? "bg-gradient-to-r from-emerald-600 to-lime-600 text-white"
+                    : activePool
+                    ? "bg-blue-900/40 border border-blue-500/30 text-blue-300 cursor-not-allowed"
+                    : "bg-white/5 border border-white/10 text-white"
                 )}
               >
-                {isSubmitting ? 'CALIBRATING...' : isLoading ? 'SYNCING...' : activePool ? 'SUBMIT TO ARENA' : 'START PRACTICE'}
+                {isSubmitting ? 'CALIBRATING...' : isLoading ? 'SYNCING...' :
+                  activePool && poolTimeLeft !== null && poolTimeLeft > 0 ? 'SUBMIT TO ARENA' :
+                  activePool ? 'WATCH PHASE — LOCKED' : 'START PRACTICE'}
               </button>
             </div>
           </section>
