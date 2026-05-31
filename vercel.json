@@ -5,6 +5,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/bot/predict",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/bot/mirror-trigger",
       "schedule": "* * * * *"
     }
