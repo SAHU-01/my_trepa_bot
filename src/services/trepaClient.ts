@@ -103,8 +103,8 @@ export async function getActiveBitcoinPool() {
     const details = await withAudit('streaks.poolDetails', 'GET', () => trepa.streaks.poolDetails(bitcoinStreak.id), { streakId: bitcoinStreak.id });
     const pool = details?.current_pool;
 
-    const isTrulyActive = pool && 
-                          pool.status === 'ACTIVE' && 
+    const isTrulyActive = pool &&
+                          pool.prediction_end_date &&
                           new Date() < new Date(pool.prediction_end_date);
 
     let expertCount = 0;

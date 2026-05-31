@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getActiveBitcoinPool, trepa } from '@/services/trepaClient';
-import { supabase, logAudit } from '@/services/supabaseClient';
+import { supabaseAdmin as supabase, logAudit } from '@/services/supabaseClient';
 
 /**
  * WHALE MIRROR ENGINE (Triggered via Cron)

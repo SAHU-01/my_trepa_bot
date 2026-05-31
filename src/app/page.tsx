@@ -7,7 +7,6 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { supabase } from '@/services/supabaseClient';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -60,7 +59,7 @@ export default function PredictionArena() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch User's Follows and Activity from Supabase
+  // Fetch User's Follows and Activity via server-side API (bypasses RLS)
   useEffect(() => {
     const userAddress = wallets[0]?.address;
     if (!authenticated || !userAddress) return;
@@ -68,24 +67,10 @@ export default function PredictionArena() {
     const fetchSupabaseData = async () => {
       setIsSyncingFollows(true);
       try {
-        // 1. Fetch Follows
-        const { data: follows, error: followError } = await supabase
-          .from('user_follows')
-          .select('whale_username')
-          .eq('user_address', userAddress)
-          .eq('is_active', true);
-        
-        if (!followError) setFollowing(follows.map(f => f.whale_username));
-
-        // 2. Fetch Activity
-        const { data: activity, error: activityError } = await supabase
-          .from('mirror_activity')
-          .select('*')
-          .eq('user_address', userAddress)
-          .order('created_at', { ascending: false })
-          .limit(10);
-        
-        if (!activityError) setRecentActivity(activity);
+        const res = await fetch(`/api/user/follows?address=${encodeURIComponent(userAddress)}`);
+        const data = await res.json();
+        setFollowing(data.follows ?? []);
+        setRecentActivity(data.activity ?? []);
       } catch (e) {}
       setIsSyncingFollows(false);
     };
@@ -99,31 +84,34 @@ export default function PredictionArena() {
       return;
     }
 
-    const isFollowing = following.includes(whaleUsername);
     const userAddress = wallets[0]?.address;
     if (!userAddress) return;
 
+    // Optimistic update
+    const isFollowing = following.includes(whaleUsername);
+    setFollowing(prev =>
+      isFollowing ? prev.filter(w => w !== whaleUsername) : [...prev, whaleUsername]
+    );
+
     try {
-      if (isFollowing) {
-        await supabase
-          .from('user_follows')
-          .delete()
-          .eq('user_address', userAddress)
-          .eq('whale_username', whaleUsername);
-        setFollowing(prev => prev.filter(w => w !== whaleUsername));
-      } else {
-        await supabase
-          .from('user_follows')
-          .insert([{ 
-            user_address: userAddress, 
-            whale_username: whaleUsername,
-            max_stake: 0.1, // Default max stake
-            is_active: true 
-          }]);
-        setFollowing(prev => [...prev, whaleUsername]);
-      }
+      const res = await fetch('/api/user/follows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: userAddress, whale: whaleUsername }),
+      });
+      const data = await res.json();
+      // Reconcile with server truth
+      setFollowing(prev =>
+        data.following
+          ? prev.includes(whaleUsername) ? prev : [...prev, whaleUsername]
+          : prev.filter(w => w !== whaleUsername)
+      );
     } catch (e) {
       console.error('Failed to toggle follow:', e);
+      // Revert optimistic update on failure
+      setFollowing(prev =>
+        isFollowing ? [...prev, whaleUsername] : prev.filter(w => w !== whaleUsername)
+      );
     }
   };
 
@@ -156,13 +144,18 @@ export default function PredictionArena() {
         }
 
         // Dynamic Range Adjustment (ensure spot is always visible)
+        const buffer = price * 0.1; // 10% buffer
+        const newMin = Math.floor(price - buffer);
+        const newMax = Math.ceil(price + buffer);
         setRange(prev => {
-          const buffer = price * 0.1; // 10% buffer
           if (price < prev.min + (buffer/2) || price > prev.max - (buffer/2)) {
-            const newMin = Math.floor(price - buffer);
-            const newMax = Math.ceil(price + buffer);
             return { min: newMin, max: newMax };
           }
+          return prev;
+        });
+        // Snap user prediction to spot price if it falls outside the visible range
+        setUserPrediction(prev => {
+          if (prev < newMin || prev > newMax) return Math.round(price);
           return prev;
         });
 
