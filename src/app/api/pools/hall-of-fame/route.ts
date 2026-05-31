@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getHallOfFame } from '@/services/trepaClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const winners = await getHallOfFame();

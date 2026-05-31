@@ -433,8 +433,84 @@ export default function PredictionArena() {
               </p>
             </div>
 
-            <div className="py-8 md:py-2 flex-1 flex flex-col justify-center">
+            <div className="py-8 md:py-2 flex-1 flex flex-col justify-center relative">
               <PredictionSlider min={range.min} max={range.max} step={1} currentPrice={currentPrice} initialValue={userPrediction} onChange={setUserPrediction} />
+              
+              {/* RESULTS OVERLAY */}
+              {(isLoading || showResults) && (
+                <div className="absolute inset-0 bg-black/95 z-40 rounded-xl flex flex-col p-6 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-mono text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                      <Terminal className="w-4 h-4" />
+                      Consensus Analysis
+                    </h3>
+                    <button onClick={() => setShowResults(false)} className="text-gray-500 hover:text-white">×</button>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                      <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                      <p className="text-[10px] font-mono text-emerald-500 animate-pulse uppercase tracking-[0.2em]">Intercepting Signals...</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 space-y-6 overflow-y-auto custom-scrollbar pr-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* AI SIGNAL */}
+                        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-3">
+                          <div className="flex items-center gap-2 text-[8px] font-mono text-emerald-400 uppercase">
+                            <Cpu className="w-3 h-3" />
+                            AI Forecast
+                          </div>
+                          <div>
+                            <p className="text-2xl font-mono text-white">${aiPrediction?.toLocaleString()}</p>
+                            <p className="text-[8px] text-emerald-500/60 font-mono mt-1">Mistral-7B Intelligence</p>
+                          </div>
+                          <div className="pt-2 border-t border-white/5 space-y-1">
+                            {aiHeadlines.map((h, i) => (
+                              <p key={i} className="text-[7px] text-gray-400 line-clamp-1 italic">"{h}"</p>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* MIRROR SIGNAL */}
+                        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-3">
+                          <div className="flex items-center gap-2 text-[8px] font-mono text-emerald-400 uppercase">
+                            <Users className="w-3 h-3" />
+                            Mirror Bot
+                          </div>
+                          <div>
+                            <p className="text-2xl font-mono text-white">
+                              {mirrorPrediction ? `$${mirrorPrediction.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'NO PEERS'}
+                            </p>
+                            <p className="text-[8px] text-emerald-500/60 font-mono mt-1">Weighted Expert Average</p>
+                          </div>
+                          <button 
+                            onClick={handleMirrorLock}
+                            className="w-full py-1.5 bg-emerald-500 text-black text-[9px] font-bold rounded hover:bg-emerald-400 transition-colors"
+                          >
+                            LOCK MIRROR
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* TOP EXPERTS LIST */}
+                      {topPredictors.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Mirroring Top Experts</p>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {topPredictors.map((p, i) => (
+                              <div key={i} className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/5 text-[9px] font-mono">
+                                <span className="text-white">{p.username}</span>
+                                <span className="text-emerald-500">${p.forecast.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">

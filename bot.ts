@@ -16,9 +16,10 @@ const log = async (tag: string, msg: string) => {
   const t = new Date().toISOString().slice(11, 19)
   console.log(`${C.dim(`[${t}]`)} ${C.yellow(tag.padEnd(10))} ${msg}`)
   
-  // Also report to dashboard API if running (Next.js default port is 3000)
+  // Also report to dashboard API if running
   try {
-    await fetch('http://localhost:3000/api/bot/logs', {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    await fetch(`${siteUrl}/api/bot/logs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tag, message: msg }),

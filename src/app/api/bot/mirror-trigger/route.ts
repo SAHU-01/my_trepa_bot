@@ -10,6 +10,8 @@ import { supabase, logAudit } from '@/services/supabaseClient';
  * 3. Finds users following those Whales.
  * 4. Executes/Logs the mirrored prediction.
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   // Simple security check for Cron trigger
