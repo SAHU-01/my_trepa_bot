@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/pools/hall-of-fame",
-      "schedule": "0 13 * * *"
+      "path": "/api/whale-sync",
+      "schedule": "5 13 * * *"
     },
     {
       "path": "/api/bot/predict",

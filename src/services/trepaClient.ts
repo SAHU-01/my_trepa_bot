@@ -53,39 +53,34 @@ const POOL_CACHE_TTL = 3000; // 3 seconds
  * to the most-recently-started pool from `streaks.pools()` that isn't closed.
  */
 export async function getActiveBitcoinPool() {
-  const now = Date.now();
-  if (cachedActivePool && (now - lastPoolFetch) < POOL_CACHE_TTL) {
+  const nowMs = Date.now();
+  if (cachedActivePool && (nowMs - lastPoolFetch) < POOL_CACHE_TTL) {
     return cachedActivePool;
   }
 
   try {
-    const bitcoinStreak = await withAudit('streaks.bitcoin', 'GET', () => trepa.streaks.bitcoin());
+    const bitcoinStreak = await trepa.streaks.bitcoin();
     if (!bitcoinStreak?.id) return { pool: null, expertCount: 0 };
 
-    // Fetch recent pools directly — more reliable than current_pool which is
-    // null during Watch Phase and sometimes during ACTIVE too.
-    const poolsRaw: any = await withAudit('streaks.pools', 'GET',
-      () => trepa.streaks.pools(bitcoinStreak.id, { limit: 10 } as any),
-      { streakId: bitcoinStreak.id }
-    );
-    const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
+    // Use pools.list() with filter_by: ["ACTIVE"] — the correct API for live pools.
+    // streaks.poolDetails().current_pool is unreliable (null during Watch Phase).
+    // streaks.pools() returns historical pools, not filtered by active status.
+    const activePools: any[] = await trepa.pools.list({
+      filter_by: ['ACTIVE'] as any,
+      streak_id: bitcoinStreak.id,
+      limit: 1,
+    } as any);
 
-    const now = new Date();
+    let pool: any = Array.isArray(activePools) && activePools.length > 0
+      ? activePools[0]
+      : null;
 
-    // 1. Prefer a pool whose prediction window includes right now
-    let pool = pools.find(p =>
-      !p.is_closed &&
-      p.prediction_start_date && p.prediction_end_date &&
-      new Date(p.prediction_start_date) <= now &&
-      now < new Date(p.prediction_end_date)
-    ) ?? null;
-
-    // 2. Fall back to the most recent non-closed pool (Watch Phase)
+    // Fallback: poolDetails current_pool (catches Watch Phase pools)
     if (!pool) {
-      pool = pools
-        .filter(p => !p.is_closed && p.status !== 'CLAIMS_FROZEN' && p.status !== 'FROZEN')
-        .sort((a: any, b: any) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0]
-        ?? null;
+      const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
+      if (details?.current_pool && !details.current_pool.is_closed) {
+        pool = details.current_pool;
+      }
     }
 
     if (!pool) {
@@ -95,14 +90,11 @@ export async function getActiveBitcoinPool() {
       return fallback;
     }
 
-    // Only fetch expert count during the prediction window
+    // Expert count — only during open prediction window
     let expertCount = 0;
     const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
     if (predictionWindowOpen) {
-      const predictions = await withAudit('pools.predictions', 'GET',
-        () => trepa.pools.predictions(pool.id, { limit: 50 }),
-        { poolId: pool.id }
-      );
+      const predictions: any[] = await trepa.pools.predictions(pool.id, { limit: 50 });
       expertCount = Array.isArray(predictions) ? predictions.length : 0;
     }
 
@@ -138,191 +130,26 @@ export async function getPrecisionScore(userId: string): Promise<number> {
     return 0;
   }
 }
-import fs from 'fs';
-import path from 'path';
-
-// Senior Pattern: Persistent File-Based Cache
-const CACHE_FILE = path.join(process.cwd(), 'whales_cache.json');
-let cachedWhales: any[] = [];
-let isRefreshing = false;
-let refreshIntervalStarted = false;
-
-// Load from file on startup for 0ms cold-start latency
-try {
-  if (fs.existsSync(CACHE_FILE)) {
-    cachedWhales = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-  }
-} catch (e) {
-  console.error('Failed to load whales cache from file:', e);
-}
-
-async function runBackgroundRefresh() {
-  if (isRefreshing) return;
-  isRefreshing = true;
-  try {
-    const bitcoinStreak = await trepa.streaks.bitcoin();
-    if (!bitcoinStreak?.id) throw new Error('Bitcoin streak not found');
-    
-    // Limit to 10 pools for Vercel Hobby performance (max 10s execution)
-    const poolsRaw: any = await trepa.streaks.pools(bitcoinStreak.id, { limit: 10 });
-    const pools = Array.isArray(poolsRaw) ? poolsRaw : (poolsRaw?.pools || poolsRaw?.data || []);
-    
-    if (!pools || pools.length === 0) {
-      isRefreshing = false;
-      return;
-    }
-
-    const expertStats = new Map<string, { 
-      username: string; 
-      uid: string;
-      wins: number; 
-      totalStaked: number;
-      accuracies: number[];
-      recentWins: Array<{ poolId: string; precision: number; stake: number }>;
-    }>();
-    
-    // Process pools to find relative winners
-    for (const pool of pools) {
-      if (!pool?.id) continue;
-      try {
-        const predictions: any = await trepa.pools.predictions(pool.id, { limit: 20, includes: ['user'] });
-        if (!Array.isArray(predictions) || predictions.length === 0) continue;
-
-        // RELATIVE WIN LOGIC: A win is defined as being in the top 10% of that specific round
-        const resolved = predictions
-          .filter(p => (Number(p.precision) || 0) > 0)
-          .sort((a, b) => Number(b.precision) - Number(a.precision));
-        
-        const winThreshold = resolved[Math.floor(resolved.length * 0.1)]?.precision || resolved[0]?.precision || 100;
-
-        predictions.forEach(p => {
-          const username = p.user?.username || `anon-${(p.predictor_account || '0000').slice(0, 4)}`;
-          const uid = p.user?.id || p.predictor_account;
-          if (!uid) return;
-          
-          const stake = Number(p.stake) || 0;
-          const precision = Number(p.precision) || 0;
-          const existing = expertStats.get(username);
-          
-          const isWin = precision > 0 && precision >= winThreshold;
-
-          if (existing) {
-            existing.wins += isWin ? 1 : 0;
-            existing.totalStaked += stake;
-            existing.accuracies.push(precision);
-            if (isWin && existing.recentWins.length < 5) {
-              existing.recentWins.push({ poolId: pool.id, precision, stake });
-            }
-          } else {
-            expertStats.set(username, {
-              username,
-              uid,
-              wins: isWin ? 1 : 0,
-              totalStaked: stake,
-              accuracies: [precision],
-              recentWins: isWin ? [{ poolId: pool.id, precision, stake }] : []
-            });
-          }
-        });
-      } catch (err) {
-        console.warn(`Skipping pool ${pool.id} in radar sync:`, err);
-      }
-    }
-    
-    // INDUSTRY STANDARD SCORING ALGORITHM
-    const result = await Promise.all([...expertStats.values()]
-      .map(async (e) => {
-        const avgPrecision = e.accuracies.reduce((a, b) => a + b, 0) / e.accuracies.length;
-        
-        // Fetch real lifetime stats for "Exact Perspective"
-        let lifetimeWins = 0;
-        let lifetimeWinRate = 0;
-        try {
-          const stats: any = await trepa.users.statistics(e.uid);
-          lifetimeWins = Number(stats.wins ?? stats.total_wins ?? 0);
-          lifetimeWinRate = Number(stats.win_rate ?? stats.winRate ?? 0);
-        } catch (err) {
-          console.warn(`Failed to fetch lifetime stats for ${e.username} (${e.uid})`);
-        }
-
-        // SCORING: Lifetime Wins + Lifetime Win Rate + Stake + Avg Precision
-        const score = (lifetimeWins * 100) + (lifetimeWinRate * 20) + (e.totalStaked * 10) + (avgPrecision);
-        
-        return {
-          username: e.username,
-          wins: lifetimeWins,
-          totalStaked: e.totalStaked,
-          winRate: Math.round(lifetimeWinRate),
-          avgPrecision: Math.round(avgPrecision),
-          score: Math.round(score),
-          isWhale: (e.totalStaked > 10 || lifetimeWins > 5),
-          recentWins: e.recentWins
-        };
-      }));
-
-    const finalWhales = result
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    if (finalWhales.length > 0) {
-      cachedWhales = finalWhales;
-      // Persist to disk for cold-start performance
-      fs.writeFileSync(CACHE_FILE, JSON.stringify(finalWhales, null, 2));
-    }
-  } catch (error) {
-    console.error('CRITICAL: Professional Whale Scan failed:', error);
-  } finally {
-    isRefreshing = false;
-  }
-}
+import { supabaseAdmin } from '@/services/supabaseClient';
 
 /**
- * Fetches the Hall of Fame - prioritizing "Whales" (High Stake + High Success).
- * Now fetches from the GitHub Raw URL to ensure persistence across Vercel restarts.
+ * Fetches the Hall of Fame from Supabase.
+ * Data is populated by the /api/whale-sync Vercel Cron job (runs daily at 13:05 UTC).
  */
 export async function getHallOfFame() {
-  // Use a timestamp to bypass GitHub's raw cache (crucial for "database" behavior)
-  const GITHUB_RAW_URL = `https://raw.githubusercontent.com/SAHU-01/my_trepa_bot/main/whales_cache.json?t=${Date.now()}`;
-
-  // If we already have data in memory and it's from a high-quality source, keep it
-  if (cachedWhales.length > 0 && refreshIntervalStarted) {
-    return cachedWhales;
-  }
-
   try {
-    console.log('📡 Fetching Whale Radar from GitHub Master...');
-    const res = await fetch(GITHUB_RAW_URL, { 
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        cachedWhales = data;
-        // CRITICAL: We found high-quality "Deep Scan" data. 
-        // We set refreshIntervalStarted to true but DO NOT start the interval.
-        // This prevents the low-quality 10-pool scan from overwriting the 100-pool data.
-        refreshIntervalStarted = true; 
-        console.log(`✅ Whale Radar synced from GitHub (${data.length} experts) - Refresh disabled to preserve quality`);
-        return cachedWhales;
-      }
-    }
+    const { data, error } = await supabaseAdmin
+      .from('whales_cache')
+      .select('data')
+      .eq('id', 1)
+      .single();
+
+    if (error || !data?.data) return [];
+    return Array.isArray(data.data) ? data.data : [];
   } catch (err) {
-    console.error('⚠️ GitHub fetch failed, attempting emergency background scan:', err);
+    console.error('Failed to fetch Hall of Fame from Supabase:', err);
+    return [];
   }
-
-  // FALLBACK: Only run the heavy 10-pool scan if GitHub is literally unreachable or empty
-  if (!refreshIntervalStarted) {
-    refreshIntervalStarted = true;
-    console.log('🔄 EMERGENCY: GitHub empty or unreachable. Starting low-quality background refresh...');
-    await runBackgroundRefresh();
-    
-    // Low-quality refresh interval (keep it infrequent to avoid API pressure)
-    setInterval(runBackgroundRefresh, 1000 * 60 * 60); 
-  }
-
-  return cachedWhales;
 }
 
 /**
