@@ -1,4 +1,5 @@
 import { Trepa } from '@trepa/sdk'
+import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 
@@ -22,6 +23,11 @@ const trepa = new Trepa({
 });
 
 const CACHE_FILE = './whales_cache.json';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 async function forcePopulateCache() {
   console.log('🚀 FORCING WHALE CACHE POPULATION...');
@@ -124,6 +130,16 @@ async function forcePopulateCache() {
 
     if (result.length > 0) {
       fs.writeFileSync(CACHE_FILE, JSON.stringify(result, null, 2));
+      console.log(`\n✅ JSON FILE WRITTEN: ${CACHE_FILE}`);
+
+      if (supabase) {
+        const { error: sbError } = await supabase
+          .from('whales_cache')
+          .upsert({ id: 1, data: result, updated_at: new Date().toISOString() });
+        if (sbError) console.warn('⚠️  Supabase upsert failed:', sbError.message);
+        else console.log('✅ SUPABASE whales_cache UPDATED');
+      }
+
       console.log(`\n✅ CACHE POPULATED: ${CACHE_FILE}`);
       console.log('\n--- 🏅 WHALE RESULTS ---');
       result.slice(0, 10).forEach((w, i) => {

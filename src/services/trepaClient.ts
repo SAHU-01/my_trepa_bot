@@ -1,4 +1,6 @@
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
+import { supabaseAdmin } from '@/services/supabaseClient';
+import whalesFallback from '../../whales_cache.json';
 
 // Initialize the Trepa SDK with credentials from environment variables
 const trepa = new Trepa({ credentials: credentialsFromEnv() });
@@ -101,6 +103,10 @@ export async function getActiveBitcoinPool() {
     const result = { pool, expertCount };
     cachedActivePool = result;
     lastPoolFetch = Date.now();
+
+    // Write to Supabase so /api/pools/active can read from cache instead of hitting Trepa directly
+    await supabaseAdmin.from('pool_cache').upsert({ id: 1, pool: pool ?? null, updated_at: new Date().toISOString() });
+
     return result;
   } catch (error: any) {
     console.error('Error fetching active pool:', error?.message ?? error);
@@ -130,7 +136,6 @@ export async function getPrecisionScore(userId: string): Promise<number> {
     return 0;
   }
 }
-import { supabaseAdmin } from '@/services/supabaseClient';
 
 /**
  * Fetches the Hall of Fame from Supabase.
@@ -144,11 +149,13 @@ export async function getHallOfFame() {
       .eq('id', 1)
       .single();
 
-    if (error || !data?.data) return [];
-    return Array.isArray(data.data) ? data.data : [];
+    if (!error && data?.data && Array.isArray(data.data) && data.data.length > 0) {
+      return data.data;
+    }
+    // Supabase empty or errored — fall back to bundled snapshot
+    return Array.isArray(whalesFallback) ? whalesFallback : [];
   } catch (err) {
-    console.error('Failed to fetch Hall of Fame from Supabase:', err);
-    return [];
+    return Array.isArray(whalesFallback) ? whalesFallback : [];
   }
 }
 
