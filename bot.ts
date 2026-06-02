@@ -1,6 +1,21 @@
 import { credentialsFromEnv, Trepa } from '@trepa/sdk'
+import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+
+const envPath = './.env'
+if (fs.existsSync(envPath)) {
+  const envFile = fs.readFileSync(envPath, 'utf-8')
+  envFile.split('\n').forEach(line => {
+    const [key, ...rest] = line.split('=')
+    if (key && rest.length > 0) process.env[key.trim()] = rest.join('=').trim()
+  })
+}
 
 const trepa = new Trepa({ credentials: credentialsFromEnv() })
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+)
 
 // ---------- pretty logger ----------
 const C = {
@@ -127,7 +142,9 @@ async function mirrorForecast(poolId: string, myUserId: string, logger?: (tag: s
   await trepa.bots.run({
     predict: async (pool, ctx) => {
       const logger = (ctx && (ctx as any).log) ? (tag: string, msg: string) => (ctx as any).log(`[${tag}] ${msg}`) : log
-      logger('ROUND', `${C.bold(pool.title)}  closes ${new Date(pool.prediction_end_date).toLocaleTimeString()}`)
+      // Keep UI and Vercel cron in sync with what pool the bot is working on
+      supabase.from('pool_cache').upsert({ id: 1, pool, updated_at: new Date().toISOString() }).catch(() => {})
+      logger('ROUND', `${C.bold(pool.title)}  closes ${new Date(pool.prediction_end_date).toLocaleTimeString()}  stake=${pool.min_stake}`)
 
       const mirrored = await mirrorForecast(pool.id, ctx.me.id, logger)
 
@@ -161,6 +178,11 @@ async function mirrorForecast(poolId: string, myUserId: string, logger?: (tag: s
       log('UPDATED', `$${previousValue} → ${C.green('$' + value)}`)
     },
     onPoolSkipped: ({ pool }) => { log('SKIP', pool?.title ?? '(no pool)') },
-    onError: (err) => { log('ERROR', C.red(String(err))) },
+    onError: (err: any) => {
+      const detail = err?.status
+        ? ` [HTTP ${err.status}${err.code ? `/${err.code}` : ''}]${err.body ? ` body=${JSON.stringify(err.body)}` : ''}`
+        : ''
+      log('ERROR', C.red(`${String(err)}${detail}`))
+    },
   })
 })()

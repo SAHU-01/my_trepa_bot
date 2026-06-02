@@ -44,21 +44,33 @@ async function runPredict() {
 
     let pool: any = null;
 
+    // Use streaks.pools() with time-window filtering — more reliable than
+    // pools.list(filter_by:ACTIVE) or poolDetails().current_pool (both unreliable).
+    let poolsRaw: any;
     try {
-      const activePools: any[] = await trepa.pools.list({
-        filter_by: ['ACTIVE'] as any,
-        streak_id: bitcoinStreak.id,
-        limit: 1,
-      } as any);
-      pool = Array.isArray(activePools) && activePools.length > 0 ? activePools[0] : null;
-    } catch {}
+      poolsRaw = await trepa.streaks.pools(bitcoinStreak.id, { limit: 10 } as any);
+    } catch (err: any) {
+      await log('ERROR', `streaks.pools threw: ${err?.message ?? err}`);
+      return;
+    }
+    const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
 
-    // Fallback to poolDetails (catches Watch Phase pools)
+    const now = new Date();
+
+    // 1. Prefer a pool whose prediction window includes right now
+    pool = pools.find(p =>
+      !p.is_closed &&
+      p.prediction_start_date && p.prediction_end_date &&
+      new Date(p.prediction_start_date) <= now &&
+      now < new Date(p.prediction_end_date)
+    ) ?? null;
+
+    // 2. Fall back to most recent non-closed pool (Watch Phase)
     if (!pool) {
-      const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
-      if (details?.current_pool && !details.current_pool.is_closed) {
-        pool = details.current_pool;
-      }
+      pool = pools
+        .filter((p: any) => !p.is_closed && p.status !== 'CLAIMS_FROZEN' && p.status !== 'FROZEN')
+        .sort((a: any, b: any) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0]
+        ?? null;
     }
 
     // Always write pool state to cache so Vercel routes stay in sync
