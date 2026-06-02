@@ -44,41 +44,54 @@ async function runPredict() {
 
     let pool: any = null;
 
-    // Use streaks.pools() with time-window filtering — more reliable than
-    // pools.list(filter_by:ACTIVE) or poolDetails().current_pool (both unreliable).
-    let poolsRaw: any;
+    // 1. poolDetails().current_pool — same approach the SDK's bots.run() uses internally
     try {
-      poolsRaw = await trepa.streaks.pools(bitcoinStreak.id, { limit: 10 } as any);
+      const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
+      if (details?.current_pool && !details.current_pool.is_closed) {
+        pool = details.current_pool;
+      }
     } catch (err: any) {
-      await log('ERROR', `streaks.pools threw: ${err?.message ?? err}`);
-      return;
+      await log('ERROR', `poolDetails threw: ${err?.message ?? err}`);
     }
-    const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
 
-    const now = new Date();
-
-    // 1. Prefer a pool whose prediction window includes right now
-    pool = pools.find(p =>
-      !p.is_closed &&
-      p.prediction_start_date && p.prediction_end_date &&
-      new Date(p.prediction_start_date) <= now &&
-      now < new Date(p.prediction_end_date)
-    ) ?? null;
-
-    // 2. Fall back to most recent non-closed pool (Watch Phase)
+    // 2. pools.list(ACTIVE) as first fallback
     if (!pool) {
-      pool = pools
-        .filter((p: any) => !p.is_closed && p.status !== 'CLAIMS_FROZEN' && p.status !== 'FROZEN')
-        .sort((a: any, b: any) => new Date(b.prediction_start_date).getTime() - new Date(a.prediction_start_date).getTime())[0]
-        ?? null;
+      try {
+        const activePools: any[] = await (trepa.pools as any).list({
+          filter_by: ['ACTIVE'],
+          streak_id: bitcoinStreak.id,
+          limit: 1,
+        });
+        if (Array.isArray(activePools) && activePools.length > 0) {
+          pool = activePools[0];
+        }
+      } catch { /* ignore */ }
     }
 
-    // Always write pool state to cache so Vercel routes stay in sync
-    await supabase.from('pool_cache').upsert({
-      id: 1,
-      pool: pool ?? null,
-      updated_at: new Date().toISOString()
-    });
+    // 3. streaks.pools() with relaxed filter as final fallback
+    if (!pool) {
+      try {
+        const poolsRaw: any = await (trepa.streaks as any).pools(bitcoinStreak.id, { limit: 10 });
+        const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
+        const now = new Date();
+        // Accept pools open now OR starting within the next 90 seconds
+        pool = pools.find((p: any) =>
+          !p.is_closed &&
+          p.prediction_start_date && p.prediction_end_date &&
+          new Date(p.prediction_start_date).getTime() - now.getTime() <= 90_000 &&
+          now < new Date(p.prediction_end_date)
+        ) ?? null;
+      } catch { /* ignore */ }
+    }
+
+    // Only update cache when a pool is found — never overwrite with null
+    if (pool) {
+      await supabase.from('pool_cache').upsert({
+        id: 1,
+        pool,
+        updated_at: new Date().toISOString()
+      });
+    }
 
     if (!pool) {
       await log('SKIP', 'No active pool — warm-up mode');

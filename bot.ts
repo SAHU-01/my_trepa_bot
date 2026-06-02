@@ -146,6 +146,16 @@ async function mirrorForecast(poolId: string, myUserId: string, logger?: (tag: s
       supabase.from('pool_cache').upsert({ id: 1, pool, updated_at: new Date().toISOString() }).catch(() => {})
       logger('ROUND', `${C.bold(pool.title)}  closes ${new Date(pool.prediction_end_date).toLocaleTimeString()}  stake=${pool.min_stake}`)
 
+      // Skip if bot already predicted in this pool to avoid duplicate-create errors
+      try {
+        const myPreds: any[] = await trepa.users.predictions(ctx.me.id, { limit: 20 } as any)
+        const already = myPreds.find((p: any) => p.pool_id === pool.id || p.poolId === pool.id)
+        if (already) {
+          logger('SKIP', `already predicted in pool ${pool.id.slice(0, 8)}… — skipping`)
+          return null
+        }
+      } catch { /* ignore — proceed and let create fail naturally */ }
+
       const mirrored = await mirrorForecast(pool.id, ctx.me.id, logger)
 
       if (mirrored === null) {
@@ -179,7 +189,7 @@ async function mirrorForecast(poolId: string, myUserId: string, logger?: (tag: s
     },
     onPoolSkipped: ({ pool }) => { log('SKIP', pool?.title ?? '(no pool)') },
     onError: (err: any) => {
-      const detail = err?.status
+      const detail = err?.status != null
         ? ` [HTTP ${err.status}${err.code ? `/${err.code}` : ''}]${err.body ? ` body=${JSON.stringify(err.body)}` : ''}`
         : ''
       log('ERROR', C.red(`${String(err)}${detail}`))
