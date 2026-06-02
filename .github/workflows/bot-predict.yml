@@ -1,0 +1,30 @@
+name: Bot Predict
+
+on:
+  schedule:
+    # Every 5 minutes during the 13:00 UTC prediction window
+    - cron: '0,5,10,15,20 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Bot Predict
+        env:
+          TREPA_API_KEY: ${{ secrets.TREPA_API_KEY }}
+          TREPA_PRIVATE_KEY: ${{ secrets.TREPA_PRIVATE_KEY }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx bot_predict.ts

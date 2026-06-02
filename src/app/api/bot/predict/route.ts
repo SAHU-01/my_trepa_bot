@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
-import { getActiveBitcoinPool, mirrorForecast } from '@/services/trepaClient';
+import { mirrorForecast } from '@/services/trepaClient';
 import { supabaseAdmin } from '@/services/supabaseClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,8 +20,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Check for open pool with prediction window still active
-    const { pool } = await getActiveBitcoinPool();
+    // 1. Read pool from Supabase cache (written by GitHub Actions bot_predict.ts)
+    // Avoids Cloudflare blocking Vercel datacenter IPs on direct Trepa API calls.
+    const { data: poolCacheData } = await supabaseAdmin
+      .from('pool_cache')
+      .select('pool, updated_at')
+      .eq('id', 1)
+      .single();
+    const pool = poolCacheData?.pool ?? null;
     if (!pool) {
       await log('SKIP', 'No active pool — warm-up mode');
       return NextResponse.json({ skipped: true, reason: 'no-pool' });

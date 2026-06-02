@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getActiveBitcoinPool, trepa } from '@/services/trepaClient';
+import { trepa } from '@/services/trepaClient';
 import { supabaseAdmin as supabase } from '@/services/supabaseClient';
 
 /**
@@ -27,8 +27,13 @@ export async function GET(req: Request) {
   };
 
   try {
-    // 1. Get Active Pool
-    const { pool } = await getActiveBitcoinPool();
+    // 1. Read pool from Supabase cache (written by GitHub Actions bot_predict.ts)
+    const { data: poolCacheData } = await supabase
+      .from('pool_cache')
+      .select('pool')
+      .eq('id', 1)
+      .single();
+    const pool = poolCacheData?.pool ?? null;
     if (!pool) return NextResponse.json({ message: 'No active pool' });
 
     // 2. Fetch all predictions for this pool
