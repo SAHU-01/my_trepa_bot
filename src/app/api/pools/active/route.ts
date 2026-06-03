@@ -12,7 +12,11 @@ export async function GET() {
       .eq('id', 1)
       .single();
 
-    const pool = data?.pool ?? null;
+    const rawPool = data?.pool ?? null;
+    // Treat expired pools as no pool — don't show a closed pool as "Watch Phase" forever
+    const pool = rawPool?.prediction_end_date && new Date() > new Date(rawPool.prediction_end_date)
+      ? null
+      : rawPool;
     return NextResponse.json({
       pool,
       nextSessionAt: getNextSessionTime(),

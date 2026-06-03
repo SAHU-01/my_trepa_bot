@@ -28,8 +28,10 @@ export async function GET(req: NextRequest) {
       .eq('id', 1)
       .single();
     const pool = poolCacheData?.pool ?? null;
+
+    // Silent no-ops — GitHub Actions handles prediction submission.
+    // Do NOT log here; it floods bot_logs with 1440 noise entries/day.
     if (!pool) {
-      await log('SKIP', 'No active pool — warm-up mode');
       return NextResponse.json({ skipped: true, reason: 'no-pool' });
     }
 
@@ -37,7 +39,6 @@ export async function GET(req: NextRequest) {
       pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
 
     if (!predictionWindowOpen) {
-      await log('SKIP', `"${pool.title}" in Watch Phase — locked`);
       return NextResponse.json({ skipped: true, reason: 'watch-phase' });
     }
 
