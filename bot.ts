@@ -143,7 +143,7 @@ async function mirrorForecast(poolId: string, myUserId: string, logger?: (tag: s
     predict: async (pool, ctx) => {
       const logger = (ctx && (ctx as any).log) ? (tag: string, msg: string) => (ctx as any).log(`[${tag}] ${msg}`) : log
       // Keep UI and Vercel cron in sync with what pool the bot is working on
-      supabase.from('pool_cache').upsert({ id: 1, pool, updated_at: new Date().toISOString() }).catch(() => {})
+      void supabase.from('pool_cache').upsert({ id: 1, pool, updated_at: new Date().toISOString() })
       logger('ROUND', `${C.bold(pool.title)}  closes ${new Date(pool.prediction_end_date).toLocaleTimeString()}  stake=${pool.min_stake}`)
 
       // Skip if bot already predicted in this pool to avoid duplicate-create errors
