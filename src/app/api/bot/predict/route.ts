@@ -26,12 +26,14 @@ export async function GET(req: NextRequest) {
       .select('pool, updated_at')
       .eq('id', 1)
       .single();
-    
-    let pool = poolCacheData?.pool ?? null;
-    let updatedAt = poolCacheData?.updated_at ? new Date(poolCacheData.updated_at).getTime() : 0;
 
-    // 2. Proactively refresh if missing or stale (Cloudflare/Vercel IP blocking permitting)
-    if (!pool || (Date.now() - updatedAt > 300_000)) {
+    let pool = poolCacheData?.pool ?? null;
+    const cacheAge = poolCacheData?.updated_at
+      ? Date.now() - new Date(poolCacheData.updated_at).getTime()
+      : Infinity;
+
+    // 2. Refresh only when cache is stale (> 5 min). A fresh null means no pool right now.
+    if (cacheAge > 300_000) {
       const active = await getActiveBitcoinPool();
       pool = active.pool;
     }
@@ -49,10 +51,10 @@ export async function GET(req: NextRequest) {
 
     await log('ROUND', `"${pool.title}" open — calculating mirror...`);
 
-    // 2. Get bot identity
+    // 3. Get bot identity
     const me = await trepa.me();
 
-    // 3. Calculate mirror forecast
+    // 4. Calculate mirror forecast
     const { prediction: mirrorValue, topPredictors } = await mirrorForecast(pool.id, me.id);
 
     let value = mirrorValue;
@@ -65,7 +67,7 @@ export async function GET(req: NextRequest) {
       await log('MIRROR', `Top ${topPredictors.length} experts → $${value.toFixed(0)}`);
     }
 
-    // 4. Check if we already have a prediction for this pool (fetch from Trepa)
+    // 5. Check if we already have a prediction for this pool
     const myPredictions: any[] = await trepa.users.predictions(me.id, { limit: 5 } as any);
     const existingPrediction = myPredictions.find(
       (p: any) => p.pool_id === pool.id || p.poolId === pool.id

@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
-import { trepa } from '@/services/trepaClient';
+import { trepa, getActiveBitcoinPool } from '@/services/trepaClient';
 import { supabaseAdmin as supabase } from '@/services/supabaseClient';
 
-/**
- * WHALE MIRROR ENGINE (Triggered via Cron)
- * 
- * 1. Finds active Flash Pool.
- * 2. Scans for new predictions from Whales.
- * 3. Finds users following those Whales.
- * 4. Executes/Logs the mirrored prediction.
- */
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
-  // Simple security check for Cron trigger
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -27,21 +18,36 @@ export async function GET(req: Request) {
   };
 
   try {
-    // 1. Read pool from Supabase cache (written by GitHub Actions bot_predict.ts)
+    // 1. Read pool from Supabase cache
     const { data: poolCacheData } = await supabase
       .from('pool_cache')
-      .select('pool')
+      .select('pool, updated_at')
       .eq('id', 1)
       .single();
-    const pool = poolCacheData?.pool ?? null;
+
+    let pool = poolCacheData?.pool ?? null;
+    const cacheAge = poolCacheData?.updated_at
+      ? Date.now() - new Date(poolCacheData.updated_at).getTime()
+      : Infinity;
+
+    // 2. Proactively refresh if cache is missing or stale (> 5 min)
+    if (cacheAge > 300_000) {
+      try {
+        const active = await getActiveBitcoinPool();
+        pool = active.pool;
+      } catch (err: any) {
+        console.error('[mirror-trigger] Pool sync failed:', err?.message);
+      }
+    }
+
     if (!pool) return NextResponse.json({ message: 'No active pool' });
 
-    // 2. Fetch all predictions for this pool
+    // 3. Fetch all predictions for this pool
     const predictionsRaw: any = await trepa.pools.predictions(pool.id, { limit: 50, includes: ['user'] });
     const predictions = Array.isArray(predictionsRaw) ? predictionsRaw : (predictionsRaw?.data || []);
     results.scanned = predictions.length;
 
-    // 3. Find active followers in our database
+    // 4. Find active followers in our database
     const { data: followers, error: followError } = await supabase
       .from('user_follows')
       .select('*')
@@ -49,16 +55,14 @@ export async function GET(req: Request) {
 
     if (followError) throw followError;
 
-    // 4. Process Mirroring
+    // 5. Process Mirroring
     for (const prediction of predictions) {
       const whaleUsername = prediction.user?.username;
       if (!whaleUsername) continue;
 
-      // Find users following this specific whale
       const relevantFollowers = followers.filter(f => f.whale_username === whaleUsername);
-      
+
       for (const follower of relevantFollowers) {
-        // Check if we already mirrored this pool for this user
         const { data: existing } = await supabase
           .from('mirror_activity')
           .select('id')
@@ -68,9 +72,6 @@ export async function GET(req: Request) {
 
         if (existing) continue;
 
-        // EXECUTION LOGIC:
-        // In a real production setup, we would call Privy Server Wallet API here.
-        // For the Arena Prototype, we log the "Mirror Intent" and record the trade activity.
         const forecastValue = Number(prediction.prediction);
         const stakeAmount = Math.min(Number(follower.max_stake), Number(pool.max_stake || 10));
 
@@ -83,7 +84,7 @@ export async function GET(req: Request) {
               pool_id: pool.id,
               forecast_value: forecastValue,
               stake_amount: stakeAmount,
-              status: 'SUCCESS', // Marked as success once the intent is recorded
+              status: 'SUCCESS',
               tx_hash: 'SIMULATED_' + Math.random().toString(36).substring(7)
             }]);
 

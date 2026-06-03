@@ -42,17 +42,16 @@ export function getNextSessionTime(): string {
   return next.toISOString();
 }
 
-// Cache for active pool to reduce sequential API hop latency
+// Cache for active pool to reduce sequential API hop latency on warm serverless instances
 let cachedActivePool: any = null;
 let lastPoolFetch = 0;
-const POOL_CACHE_TTL = 3000; // 3 seconds
+const POOL_CACHE_TTL = 30_000; // 30 seconds
 
 /**
  * Fetches the current active/watch-phase pool for the Bitcoin Flash streak.
  *
- * Strategy: `streaks.poolDetails().current_pool` is null when the pool is in
- * PREDICTIONS_FROZEN (Watch Phase). So we also check `next_pool` and fall back
- * to the most-recently-started pool from `streaks.pools()` that isn't closed.
+ * Errors propagate to callers — do NOT swallow them here. Callers decide
+ * whether to surface the error or fall back to cached data.
  */
 export async function getActiveBitcoinPool() {
   const nowMs = Date.now();
@@ -60,58 +59,56 @@ export async function getActiveBitcoinPool() {
     return cachedActivePool;
   }
 
-  try {
-    const bitcoinStreak = await trepa.streaks.bitcoin();
-    if (!bitcoinStreak?.id) return { pool: null, expertCount: 0 };
+  // No outer try/catch — errors propagate so callers can log the real failure cause.
+  const bitcoinStreak = await trepa.streaks.bitcoin();
+  if (!bitcoinStreak?.id) {
+    const fallback = { pool: null, expertCount: 0 };
+    cachedActivePool = fallback;
+    lastPoolFetch = Date.now();
+    // Stamp the cache so subsequent requests don't hammer the API when no streak is found
+    await supabaseAdmin.from('pool_cache').upsert({ id: 1, pool: null, updated_at: new Date().toISOString() });
+    return fallback;
+  }
 
-    // Use pools.list() with filter_by: ["ACTIVE"] — the correct API for live pools.
-    // streaks.poolDetails().current_pool is unreliable (null during Watch Phase).
-    // streaks.pools() returns historical pools, not filtered by active status.
-    const activePools: any[] = await trepa.pools.list({
-      filter_by: ['ACTIVE'] as any,
-      streak_id: bitcoinStreak.id,
-      limit: 1,
-    } as any);
+  const activePools: any[] = await trepa.pools.list({
+    filter_by: ['ACTIVE'] as any,
+    streak_id: bitcoinStreak.id,
+    limit: 1,
+  } as any);
 
-    let pool: any = Array.isArray(activePools) && activePools.length > 0
-      ? activePools[0]
-      : null;
+  let pool: any = Array.isArray(activePools) && activePools.length > 0
+    ? activePools[0]
+    : null;
 
-    // Fallback: poolDetails current_pool (catches Watch Phase pools)
-    if (!pool) {
-      const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
-      if (details?.current_pool && !details.current_pool.is_closed) {
-        pool = details.current_pool;
-      }
+  // Fallback: poolDetails current_pool (catches Watch Phase pools)
+  if (!pool) {
+    const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
+    if (details?.current_pool && !details.current_pool.is_closed) {
+      pool = details.current_pool;
     }
+  }
 
-    if (!pool) {
-      const fallback = { pool: null, expertCount: 0 };
-      cachedActivePool = fallback;
-      lastPoolFetch = Date.now();
-      return fallback;
-    }
-
-    // Expert count — only during open prediction window
-    let expertCount = 0;
+  // Expert count — only during open prediction window (non-critical, never throws)
+  let expertCount = 0;
+  if (pool) {
     const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
     if (predictionWindowOpen) {
-      const predictions: any[] = await trepa.pools.predictions(pool.id, { limit: 50 });
-      expertCount = Array.isArray(predictions) ? predictions.length : 0;
+      try {
+        const predictions: any[] = await trepa.pools.predictions(pool.id, { limit: 50 });
+        expertCount = Array.isArray(predictions) ? predictions.length : 0;
+      } catch { /* non-critical */ }
     }
-
-    const result = { pool, expertCount };
-    cachedActivePool = result;
-    lastPoolFetch = Date.now();
-
-    // Write to Supabase so /api/pools/active can read from cache instead of hitting Trepa directly
-    await supabaseAdmin.from('pool_cache').upsert({ id: 1, pool: pool ?? null, updated_at: new Date().toISOString() });
-
-    return result;
-  } catch (error: any) {
-    console.error('Error fetching active pool:', error?.message ?? error);
-    return { pool: null, expertCount: 0 };
   }
+
+  const result = { pool: pool ?? null, expertCount };
+  cachedActivePool = result;
+  lastPoolFetch = Date.now();
+
+  // Always write to Supabase — even when pool is null — so cache timestamp stays fresh
+  // and callers don't re-fetch on every request during between-round periods.
+  await supabaseAdmin.from('pool_cache').upsert({ id: 1, pool: pool ?? null, updated_at: new Date().toISOString() });
+
+  return result;
 }
 
 /**
