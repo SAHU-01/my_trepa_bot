@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
-import { mirrorForecast } from '@/services/trepaClient';
+import { mirrorForecast, getActiveBitcoinPool } from '@/services/trepaClient';
 import { supabaseAdmin } from '@/services/supabaseClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,17 +20,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Read pool from Supabase cache (written by GitHub Actions bot_predict.ts)
-    // Avoids Cloudflare blocking Vercel datacenter IPs on direct Trepa API calls.
+    // 1. Read pool from Supabase cache
     const { data: poolCacheData } = await supabaseAdmin
       .from('pool_cache')
       .select('pool, updated_at')
       .eq('id', 1)
       .single();
-    const pool = poolCacheData?.pool ?? null;
+    
+    let pool = poolCacheData?.pool ?? null;
+    let updatedAt = poolCacheData?.updated_at ? new Date(poolCacheData.updated_at).getTime() : 0;
 
-    // Silent no-ops — GitHub Actions handles prediction submission.
-    // Do NOT log here; it floods bot_logs with 1440 noise entries/day.
+    // 2. Proactively refresh if missing or stale (Cloudflare/Vercel IP blocking permitting)
+    if (!pool || (Date.now() - updatedAt > 300_000)) {
+      const active = await getActiveBitcoinPool();
+      pool = active.pool;
+    }
+
     if (!pool) {
       return NextResponse.json({ skipped: true, reason: 'no-pool' });
     }

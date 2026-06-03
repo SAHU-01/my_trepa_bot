@@ -1,4 +1,4 @@
-import { Trepa } from '@trepa/sdk'
+import { Trepa, credentialsFromEnv } from '@trepa/sdk'
 import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 
@@ -14,28 +14,28 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const trepa = new Trepa({
-  credentials: [{
-    apiKey: process.env.TREPA_API_KEY || '',
-    privateKey: process.env.TREPA_PRIVATE_KEY || ''
-  }]
-});
+// SDK v0.2.x standard initialization
+const trepa = new Trepa({ credentials: credentialsFromEnv() });
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 async function log(tag: string, message: string) {
   console.log(`[${tag}] ${message}`);
-  await supabase.from('bot_logs').insert([{ tag, message }]);
+  try {
+    await supabase.from('bot_logs').insert([{ tag, message }]);
+  } catch (e) {
+    console.error('Failed to write log to Supabase:', e);
+  }
 }
 
 async function runPredict() {
   console.log('🤖 Bot predict starting (GitHub Actions)...');
 
   try {
-    // 1. Find active pool
+    // 1. Find active pool using robust discovery
     const bitcoinStreak = await trepa.streaks.bitcoin();
     if (!bitcoinStreak?.id) {
       await log('SKIP', 'Bitcoin streak not found');
@@ -44,47 +44,43 @@ async function runPredict() {
 
     let pool: any = null;
 
-    // 1. poolDetails().current_pool — same approach the SDK's bots.run() uses internally
+    // A. Try pools.list(ACTIVE) first — most reliable for live pools
     try {
-      const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
-      if (details?.current_pool && !details.current_pool.is_closed) {
-        pool = details.current_pool;
+      const activePools: any[] = await (trepa.pools as any).list({
+        filter_by: ['ACTIVE'],
+        streak_id: bitcoinStreak.id,
+        limit: 1,
+      });
+      if (Array.isArray(activePools) && activePools.length > 0) {
+        pool = activePools[0];
       }
-    } catch (err: any) {
-      await log('ERROR', `poolDetails threw: ${err?.message ?? err}`);
-    }
+    } catch { /* ignore */ }
 
-    // 2. pools.list(ACTIVE) as first fallback
+    // B. Fallback to poolDetails
     if (!pool) {
       try {
-        const activePools: any[] = await (trepa.pools as any).list({
-          filter_by: ['ACTIVE'],
-          streak_id: bitcoinStreak.id,
-          limit: 1,
-        });
-        if (Array.isArray(activePools) && activePools.length > 0) {
-          pool = activePools[0];
+        const details = await trepa.streaks.poolDetails(bitcoinStreak.id);
+        if (details?.current_pool && !details.current_pool.is_closed) {
+          pool = details.current_pool;
         }
       } catch { /* ignore */ }
     }
 
-    // 3. streaks.pools() with relaxed filter as final fallback
+    // C. Final fallback: list all pools and filter manually
     if (!pool) {
       try {
         const poolsRaw: any = await (trepa.streaks as any).pools(bitcoinStreak.id, { limit: 10 });
         const pools: any[] = poolsRaw?.pools ?? (Array.isArray(poolsRaw) ? poolsRaw : []);
         const now = new Date();
-        // Accept pools open now OR starting within the next 90 seconds
         pool = pools.find((p: any) =>
           !p.is_closed &&
-          p.prediction_start_date && p.prediction_end_date &&
-          new Date(p.prediction_start_date).getTime() - now.getTime() <= 90_000 &&
+          p.prediction_end_date &&
           now < new Date(p.prediction_end_date)
         ) ?? null;
       } catch { /* ignore */ }
     }
 
-    // Only update cache when a pool is found — never overwrite with null
+    // Always update cache if we found a pool
     if (pool) {
       await supabase.from('pool_cache').upsert({
         id: 1,
@@ -99,10 +95,17 @@ async function runPredict() {
     }
 
     console.log(`✅ Active pool: ${pool.id} (${pool.title})`);
+    
+    // Check if prediction window is open
+    const now = new Date();
+    const startDate = pool.prediction_start_date ? new Date(pool.prediction_start_date) : null;
+    const endDate = pool.prediction_end_date ? new Date(pool.prediction_end_date) : null;
+    
+    const isStarted = !startDate || now >= startDate;
+    const isNotEnded = !endDate || now < endDate;
 
-    const predictionWindowOpen = pool.prediction_end_date && new Date() < new Date(pool.prediction_end_date);
-    if (!predictionWindowOpen) {
-      await log('SKIP', `"${pool.title}" in Watch Phase — locked`);
+    if (!isStarted || !isNotEnded) {
+      await log('SKIP', `"${pool.title}" not in prediction window — locked`);
       return;
     }
 
