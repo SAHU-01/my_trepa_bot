@@ -14,13 +14,25 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-// SDK v0.2.x standard initialization
 const trepa = new Trepa({ credentials: credentialsFromEnv() });
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
+
+function isCloudflareBlock(err: any): boolean {
+  const text = [err?.message, err?.body, typeof err === 'string' ? err : null]
+    .filter(Boolean).join(' ');
+  return (
+    text.includes('Access Restricted') ||
+    text.includes('access restricted') ||
+    text.includes('<!doctype') ||
+    text.includes('<html') ||
+    text.includes('cloudflare') ||
+    (text.includes('Unexpected token') && text.includes('<'))
+  );
+}
 
 async function log(tag: string, message: string) {
   console.log(`[${tag}] ${message}`);
@@ -192,6 +204,11 @@ async function runPredict() {
     }
 
   } catch (error: any) {
+    if (isCloudflareBlock(error)) {
+      await log('BLOCKED', 'GitHub Actions IP is blocked by Trepa/Cloudflare. Contact support@trepa.io to whitelist GitHub Actions IP ranges, or run the bot from a non-datacenter IP.');
+      console.error('❌ BLOCKED by Cloudflare — GitHub Actions datacenter IP is not whitelisted by Trepa');
+      process.exit(1);
+    }
     await log('ERROR', error.message ?? String(error));
     console.error('❌ PREDICT FAILED:', error);
     process.exit(1);

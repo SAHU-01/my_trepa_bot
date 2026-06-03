@@ -9,6 +9,10 @@ on:
 jobs:
   predict:
     runs-on: ubuntu-latest
+    # Run on a GitHub-hosted runner outside the US.
+    # Trepa geoblocks US IPs — Singapore/EU runners are not restricted.
+    # To use a GitHub-hosted non-US runner you need a GitHub Team/Enterprise plan.
+    # On Free plan: use a self-hosted runner on your local machine (India IP).
     steps:
       - uses: actions/checkout@v4
 

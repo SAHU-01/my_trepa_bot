@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import { trepa, getActiveBitcoinPool } from '@/services/trepaClient';
+import { trepa, isCloudflareBlock } from '@/services/trepaClient';
 import { supabaseAdmin as supabase } from '@/services/supabaseClient';
 
 export const dynamic = 'force-dynamic';
 
+// Reads pool from Supabase cache only. Trepa direct calls are only made here to
+// fetch predictions (read-only), which may still be blocked by Cloudflare.
+// Pool discovery never happens from Vercel — that's GitHub Actions' job.
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -11,43 +14,39 @@ export async function GET(req: Request) {
   }
 
   const start = Date.now();
-  const results = {
-    scanned: 0,
-    mirrored: 0,
-    errors: [] as string[]
-  };
+  const results = { scanned: 0, mirrored: 0, errors: [] as string[] };
 
   try {
-    // 1. Read pool from Supabase cache
+    // Read pool from Supabase cache (written by GitHub Actions bot_predict.ts)
     const { data: poolCacheData } = await supabase
       .from('pool_cache')
       .select('pool, updated_at')
       .eq('id', 1)
       .single();
 
-    let pool = poolCacheData?.pool ?? null;
+    const pool = poolCacheData?.pool ?? null;
     const cacheAge = poolCacheData?.updated_at
       ? Date.now() - new Date(poolCacheData.updated_at).getTime()
       : Infinity;
 
-    // 2. Proactively refresh if cache is missing or stale (> 5 min)
-    if (cacheAge > 300_000) {
-      try {
-        const active = await getActiveBitcoinPool();
-        pool = active.pool;
-      } catch (err: any) {
-        console.error('[mirror-trigger] Pool sync failed:', err?.message);
+    if (!pool) return NextResponse.json({ message: 'No active pool in cache' });
+    if (cacheAge > 1_800_000) return NextResponse.json({ message: 'Cache stale — waiting for GitHub Actions to refresh' });
+
+    // Fetch predictions for this pool from Trepa (read-only — may be blocked)
+    let predictionsRaw: any;
+    try {
+      predictionsRaw = await trepa.pools.predictions(pool.id, { limit: 50, includes: ['user'] });
+    } catch (err: any) {
+      if (isCloudflareBlock(err)) {
+        console.error('[mirror-trigger] Trepa API blocked by Cloudflare');
+        return NextResponse.json({ error: 'IP_BLOCKED', detail: 'Trepa blocks Vercel datacenter IPs.' }, { status: 503 });
       }
+      throw err;
     }
 
-    if (!pool) return NextResponse.json({ message: 'No active pool' });
-
-    // 3. Fetch all predictions for this pool
-    const predictionsRaw: any = await trepa.pools.predictions(pool.id, { limit: 50, includes: ['user'] });
     const predictions = Array.isArray(predictionsRaw) ? predictionsRaw : (predictionsRaw?.data || []);
     results.scanned = predictions.length;
 
-    // 4. Find active followers in our database
     const { data: followers, error: followError } = await supabase
       .from('user_follows')
       .select('*')
@@ -55,7 +54,6 @@ export async function GET(req: Request) {
 
     if (followError) throw followError;
 
-    // 5. Process Mirroring
     for (const prediction of predictions) {
       const whaleUsername = prediction.user?.username;
       if (!whaleUsername) continue;
@@ -96,12 +94,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      ...results,
-      duration: Date.now() - start
-    });
-
+    return NextResponse.json({ success: true, ...results, duration: Date.now() - start });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

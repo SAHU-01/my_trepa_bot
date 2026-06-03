@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { credentialsFromEnv, Trepa } from '@trepa/sdk';
-import { mirrorForecast, getActiveBitcoinPool } from '@/services/trepaClient';
+import { mirrorForecast, getActiveBitcoinPool, isCloudflareBlock } from '@/services/trepaClient';
 import { supabaseAdmin } from '@/services/supabaseClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Read pool from Supabase cache
+    // Read from cache first
     const { data: poolCacheData } = await supabaseAdmin
       .from('pool_cache')
       .select('pool, updated_at')
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       ? Date.now() - new Date(poolCacheData.updated_at).getTime()
       : Infinity;
 
-    // 2. Refresh only when cache is stale (> 5 min). A fresh null means no pool right now.
+    // Refresh if stale — Vercel runs from Singapore (sin1), not US, so Trepa allows it
     if (cacheAge > 300_000) {
       const active = await getActiveBitcoinPool();
       pool = active.pool;
@@ -51,10 +51,8 @@ export async function GET(req: NextRequest) {
 
     await log('ROUND', `"${pool.title}" open — calculating mirror...`);
 
-    // 3. Get bot identity
     const me = await trepa.me();
 
-    // 4. Calculate mirror forecast
     const { prediction: mirrorValue, topPredictors } = await mirrorForecast(pool.id, me.id);
 
     let value = mirrorValue;
@@ -67,7 +65,6 @@ export async function GET(req: NextRequest) {
       await log('MIRROR', `Top ${topPredictors.length} experts → $${value.toFixed(0)}`);
     }
 
-    // 5. Check if we already have a prediction for this pool
     const myPredictions: any[] = await trepa.users.predictions(me.id, { limit: 5 } as any);
     const existingPrediction = myPredictions.find(
       (p: any) => p.pool_id === pool.id || p.poolId === pool.id
@@ -84,6 +81,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, pool: pool.title, value });
   } catch (error: any) {
+    if (isCloudflareBlock(error)) {
+      await log('BLOCKED', 'Trepa is blocking this server region. Check Vercel deployment region is set to sin1 (Singapore).');
+      return NextResponse.json({ error: 'REGION_BLOCKED' }, { status: 503 });
+    }
     await log('ERROR', error.message ?? String(error));
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
