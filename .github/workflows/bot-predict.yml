@@ -1,10 +1,9 @@
 name: Bot Predict
 
 on:
-  schedule:
-    # Every 5 minutes during the 13:00 UTC prediction window
-    - cron: '0,5,10,15,20 13 * * *'
   workflow_dispatch:
+    # Scheduled cron removed — Vercel bom1 (Mumbai) cron handles predictions.
+    # GitHub Actions runs on US Azure IPs which are blocked by Trepa/Cloudflare.
 
 jobs:
   predict:
